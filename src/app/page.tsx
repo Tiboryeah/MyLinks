@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useDiscordStatus } from './useDiscordStatus';
 import {
   Instagram,
@@ -13,28 +13,6 @@ import {
   Gamepad2,
   Globe
 } from 'lucide-react';
-
-// Custom Bat Icon (SVG)
-const BatIcon = ({ style }: { style?: React.CSSProperties }) => (
-  <svg
-    viewBox="0 0 24 24"
-    width="150"
-    height="150"
-    fill="currentColor"
-    className="bat-parallax bat-float"
-    style={style}
-  >
-    <path d="M12 4.5C10.5 4.5 9 5.5 8 7c-1-1.5-2.5-2.5-4-2.5-1.5 0-3 1-3 3 0 4 5 10 11 12 6-2 11-8 11-12 0-2-1.5-3-3-3-1.5 0-3 1-4 2.5-1-1.5-2.5-2.5-4-2.5z" />
-    <path d="M12 2L10.5 5h3L12 2zM4 6c0 0 2 0 4 2s0 4 0 4-4-2-4-6zm16 0c0 0-2 0-4 2s0 4 0 4 4-2 4-6zM2 10s3 1 5 1 5-1 5-1 3 1 5 1 5-1 5-1-2 5-10 7-10-7-10-7z" />
-  </svg>
-);
-
-// Reverting to the first SVG Steam Icon version
-const SteamIcon = () => (
-  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-    <path d="M12 0a12 12 0 0 0-11.94 10.74l4.2 1.73a3.56 3.56 0 0 1 3.25-.43l2.84-4.14a3.57 3.57 0 1 1 2.37.1l-2.8 4.1a3.56 3.56 0 0 1-1.34 3.73l-.04.03a3.56 3.56 0 1 1-6.17-1.16l-4.32-1.78A12 12 0 1 0 12 0zM7.5 15.63a2.07 2.07 0 1 0 0-4.14 2.07 2.07 0 0 0 0 4.14zM16.5 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" />
-  </svg>
-);
 
 // Typewriter Component
 const Typewriter = ({ text }: { text: string }) => {
@@ -73,6 +51,13 @@ const Typewriter = ({ text }: { text: string }) => {
   return <h1 className="username">{displayText}</h1>;
 }
 
+// Steam Icon Component
+const SteamIcon = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+    <path d="M12 0a12 12 0 0 0-11.94 10.74l4.2 1.73a3.56 3.56 0 0 1 3.25-.43l2.84-4.14a3.57 3.57 0 1 1 2.37.1l-2.8 4.1a3.56 3.56 0 0 1-1.34 3.73l-.04.03a3.56 3.56 0 1 1-6.17-1.16l-4.32-1.78A12 12 0 1 0 12 0zM7.5 15.63a2.07 2.07 0 1 0 0-4.14 2.07 2.07 0 0 0 0 4.14zM16.5 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" />
+  </svg>
+);
+
 export default function Home() {
   const [entered, setEntered] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -83,12 +68,20 @@ export default function Home() {
   const discordId = "952780497761730560";
   const status = useDiscordStatus(discordId);
 
+  // Generate random positions for multiple bats
+  const bats = useMemo(() => [
+    { id: 1, top: '15%', left: '10%', size: 120, speed: 0.05, delay: '0s' },
+    { id: 2, top: '25%', left: '75%', size: 80, speed: 0.03, delay: '1s' },
+    { id: 3, top: '70%', left: '15%', size: 100, speed: 0.04, delay: '2s' },
+    { id: 4, top: '80%', left: '80%', size: 60, speed: 0.02, delay: '0.5s' },
+  ], []);
+
   // Parallax Effect
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       setMousePos({
-        x: (e.clientX - window.innerWidth / 2) / 25,
-        y: (e.clientY - window.innerHeight / 2) / 25,
+        x: e.clientX - window.innerWidth / 2,
+        y: e.clientY - window.innerHeight / 2,
       });
     };
     window.addEventListener('mousemove', handleMouseMove);
@@ -106,16 +99,16 @@ export default function Home() {
   useEffect(() => {
     const fetchViews = async () => {
       try {
-        // Using CounterAPI (Free & No Key required for simple tracking)
-        // Namespace: tiboryeah-mylink, Key: views
         const response = await fetch('https://api.counterapi.dev/v1/tiboryeah-mylink/views/up');
         const data = await response.json();
         if (data.count) {
           setViews(data.count);
+        } else {
+          setViews("0");
         }
       } catch (error) {
         console.error("Error updating views:", error);
-        setViews("Error");
+        setViews("...");
       }
     };
 
@@ -139,12 +132,24 @@ export default function Home() {
 
   return (
     <main className="main-container">
-      {/* Parallax Bat */}
-      <BatIcon style={{
-        transform: `translate(${mousePos.x}px, ${mousePos.y}px)`,
-        top: '15%',
-        left: '20%'
-      }} />
+      {/* Multiple Parallax Bats */}
+      {bats.map(bat => (
+        <img
+          key={bat.id}
+          src="/bat.webp"
+          alt="Bat"
+          className="bat-parallax bat-float"
+          style={{
+            top: bat.top,
+            left: bat.left,
+            width: `${bat.size}px`,
+            opacity: 0.4,
+            zIndex: 1,
+            animationDelay: bat.delay,
+            transform: `translate(${mousePos.x * bat.speed}px, ${mousePos.y * bat.speed}px)`
+          }}
+        />
+      ))}
 
       {/* Background overlay with image */}
       <div
