@@ -68,12 +68,14 @@ export default function Home() {
   const discordId = "952780497761730560";
   const status = useDiscordStatus(discordId);
 
-  // Generate random positions for multiple bats
+  // Generate random positions for multiple bats ONLY on the left side
   const bats = useMemo(() => [
-    { id: 1, top: '15%', left: '10%', size: 120, speed: 0.05, delay: '0s' },
-    { id: 2, top: '25%', left: '75%', size: 80, speed: 0.03, delay: '1s' },
-    { id: 3, top: '70%', left: '15%', size: 100, speed: 0.04, delay: '2s' },
-    { id: 4, top: '80%', left: '80%', size: 60, speed: 0.02, delay: '0.5s' },
+    { id: 1, top: '10%', left: '5%', size: 130, speed: 0.06, delay: '0s' },
+    { id: 2, top: '20%', left: '15%', size: 90, speed: 0.04, delay: '1.2s' },
+    { id: 3, top: '40%', left: '8%', size: 110, speed: 0.05, delay: '2.5s' },
+    { id: 4, top: '60%', left: '20%', size: 70, speed: 0.03, delay: '0.8s' },
+    { id: 5, top: '75%', left: '4%', size: 100, speed: 0.07, delay: '3.1s' },
+    { id: 6, top: '85%', left: '18%', size: 85, speed: 0.04, delay: '1.5s' },
   ], []);
 
   // Parallax Effect
