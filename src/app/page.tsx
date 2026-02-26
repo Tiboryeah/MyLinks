@@ -97,30 +97,38 @@ export default function Home() {
     }
   }, []);
 
-  // Functional View Counter
+  // Initial View Counter Fetch (Get current count without incrementing)
   useEffect(() => {
-    const fetchViews = async () => {
+    const getInitialViews = async () => {
       try {
-        const response = await fetch('https://api.counterapi.dev/v1/tiboryeah-mylink/views/up');
+        const response = await fetch('https://api.counterapi.dev/v1/tiboryeah-mylink/views');
         const data = await response.json();
         if (data.count) {
           setViews(data.count);
-        } else {
-          setViews("0");
         }
       } catch (error) {
-        console.error("Error updating views:", error);
-        setViews("...");
+        console.error("Error fetching views:", error);
       }
     };
 
-    fetchViews();
+    getInitialViews();
   }, []);
 
-  const handleEnter = () => {
+  const handleEnter = async () => {
     setEntered(true);
     if (audioRef.current) {
       audioRef.current.play().catch(e => console.log("Audio play blocked", e));
+    }
+
+    // Increment views only when the user clicks "enter"
+    try {
+      const response = await fetch('https://api.counterapi.dev/v1/tiboryeah-mylink/views/up');
+      const data = await response.json();
+      if (data.count) {
+        setViews(data.count);
+      }
+    } catch (error) {
+      console.error("Error incrementing views:", error);
     }
   };
 
