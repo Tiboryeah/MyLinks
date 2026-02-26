@@ -263,7 +263,6 @@ body {
     opacity: 0.2;
     pointer-events: none;
     z-index: 1;
-    filter: drop-shadow(0 0 15px var(--primary));
     transition: transform 0.1s ease-out;
 }
 
