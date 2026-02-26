@@ -97,17 +97,22 @@ export default function Home() {
     }
   }, []);
 
-  // Initial View Counter Fetch (Get current count without incrementing)
+  // Initial View Counter Fetch
   useEffect(() => {
     const getInitialViews = async () => {
       try {
+        // We use the count endpoint to see current total
         const response = await fetch('https://api.counterapi.dev/v1/tiboryeah-mylink/views');
         const data = await response.json();
-        if (data.count) {
+        // If data.count exists, use it. If not (meaning first time ever), set to 0.
+        if (data && typeof data.count === 'number') {
           setViews(data.count);
+        } else {
+          setViews(0);
         }
       } catch (error) {
         console.error("Error fetching views:", error);
+        setViews(0); // Fallback to 0 if API fails
       }
     };
 
@@ -124,7 +129,7 @@ export default function Home() {
     try {
       const response = await fetch('https://api.counterapi.dev/v1/tiboryeah-mylink/views/up');
       const data = await response.json();
-      if (data.count) {
+      if (data && typeof data.count === 'number') {
         setViews(data.count);
       }
     } catch (error) {
