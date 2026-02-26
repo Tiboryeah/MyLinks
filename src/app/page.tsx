@@ -101,8 +101,7 @@ export default function Home() {
   useEffect(() => {
     const getInitialViews = async () => {
       try {
-        // Use a unique namespace and no-store to prevent caching
-        const response = await fetch('https://api.counterapi.dev/v1/tiboryeah-prod/hits', { cache: 'no-store' });
+        const response = await fetch('/api/views');
         const data = await response.json();
         // If data.count exists, use it. If not (meaning first time ever), set to 0.
         if (data && typeof data.count === 'number') {
@@ -111,7 +110,7 @@ export default function Home() {
           setViews(0);
         }
       } catch (error) {
-        console.error("Error fetching views:", error);
+        console.error("Error fetching views from API route:", error);
         setViews(0); // Fallback to 0 if API fails
       }
     };
@@ -125,15 +124,15 @@ export default function Home() {
       audioRef.current.play().catch(e => console.log("Audio play blocked", e));
     }
 
-    // Increment hits only on click
+    // Increment hits via server-side API proxy
     try {
-      const response = await fetch('https://api.counterapi.dev/v1/tiboryeah-prod/hits/up', { cache: 'no-store' });
+      const response = await fetch('/api/views?increment=true');
       const data = await response.json();
       if (data && typeof data.count === 'number') {
         setViews(data.count);
       }
     } catch (error) {
-      console.error("Error incrementing views:", error);
+      console.error("Error incrementing views via API route:", error);
     }
   };
 
