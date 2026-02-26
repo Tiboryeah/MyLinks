@@ -101,8 +101,8 @@ export default function Home() {
   useEffect(() => {
     const getInitialViews = async () => {
       try {
-        // We use the count endpoint to see current total
-        const response = await fetch('https://api.counterapi.dev/v1/tiboryeah-mylink/views');
+        // Use a unique namespace and no-store to prevent caching
+        const response = await fetch('https://api.counterapi.dev/v1/tiboryeah-prod/hits', { cache: 'no-store' });
         const data = await response.json();
         // If data.count exists, use it. If not (meaning first time ever), set to 0.
         if (data && typeof data.count === 'number') {
@@ -125,9 +125,9 @@ export default function Home() {
       audioRef.current.play().catch(e => console.log("Audio play blocked", e));
     }
 
-    // Increment views only when the user clicks "enter"
+    // Increment hits only on click
     try {
-      const response = await fetch('https://api.counterapi.dev/v1/tiboryeah-mylink/views/up');
+      const response = await fetch('https://api.counterapi.dev/v1/tiboryeah-prod/hits/up', { cache: 'no-store' });
       const data = await response.json();
       if (data && typeof data.count === 'number') {
         setViews(data.count);
