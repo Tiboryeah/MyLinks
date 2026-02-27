@@ -13,7 +13,8 @@ import {
   Gamepad2,
   Globe,
   Info,
-  Skull
+  Skull,
+  ExternalLink
 } from 'lucide-react';
 
 // Typewriter Component
@@ -191,15 +192,26 @@ export default function Home() {
 
   useEffect(() => {
     if (audioRef.current && !muted) {
+      audioRef.current.volume = 0.5; // Set base volume
       audioRef.current.play().catch(() => {
         console.log("Autoplay prevented or audio source changed.");
       });
     }
   }, [bgAudioSrc, muted]);
 
-  useEffect(() => {
-    if (audioRef.current) audioRef.current.volume = 0.25;
-  }, []);
+  // Audio Fade Effect
+  const handleAudioTimeUpdate = () => {
+    if (!audioRef.current) return;
+    const audio = audioRef.current;
+
+    // Fade out in the last 3 seconds
+    if (audio.duration - audio.currentTime < 3) {
+      audio.volume = Math.max(0, (audio.duration - audio.currentTime) / 6);
+    } else {
+      audio.volume = 0.5;
+    }
+  };
+
 
   useEffect(() => {
     const fetchViews = async () => {
@@ -402,6 +414,14 @@ export default function Home() {
                     <p className="activity-title">Listening to Spotify <span className="sync-tag">Synced Audio</span></p>
                     <p className="activity-name">{status.spotify.song}</p>
                     <p className="activity-detail">by {status.spotify.artist}</p>
+                    <a
+                      href={`https://open.spotify.com/track/${status.spotify.track_id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="spotify-link-btn"
+                    >
+                      Listen Full <ExternalLink size={12} />
+                    </a>
                   </div>
                 </>
               ) : status.activities.find(a => a.type !== 4) ? (() => {
@@ -494,7 +514,13 @@ export default function Home() {
         {muted ? <VolumeX className="click-text" /> : <Volume2 className="click-text" />}
       </div>
 
-      <audio ref={audioRef} src={bgAudioSrc} loop muted={muted} />
+      <audio
+        ref={audioRef}
+        src={bgAudioSrc}
+        loop
+        muted={muted}
+        onTimeUpdate={handleAudioTimeUpdate}
+      />
     </main>
   );
 }
