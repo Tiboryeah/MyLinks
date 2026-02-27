@@ -67,6 +67,7 @@ export default function Home() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [views, setViews] = useState<number | string>("...");
   const [bgAudioSrc, setBgAudioSrc] = useState("/everlong.mp3");
+  const [volume, setVolume] = useState(0.5);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const discordId = "952780497761730560";
@@ -192,23 +193,36 @@ export default function Home() {
 
   useEffect(() => {
     if (audioRef.current && !muted) {
-      audioRef.current.volume = 0.5; // Set base volume
+      audioRef.current.volume = volume;
       audioRef.current.play().catch(() => {
         console.log("Autoplay prevented or audio source changed.");
       });
     }
-  }, [bgAudioSrc, muted]);
+  }, [bgAudioSrc, muted, volume]);
 
   // Audio Fade Effect
   const handleAudioTimeUpdate = () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || muted) return;
     const audio = audioRef.current;
 
     // Fade out in the last 3 seconds
     if (audio.duration - audio.currentTime < 3) {
-      audio.volume = Math.max(0, (audio.duration - audio.currentTime) / 6);
+      audio.volume = Math.max(0, ((audio.duration - audio.currentTime) / 3) * volume);
     } else {
-      audio.volume = 0.5;
+      audio.volume = volume;
+    }
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVol = parseFloat(e.target.value);
+    setVolume(newVol);
+    if (audioRef.current) {
+      audioRef.current.volume = newVol;
+    }
+    if (newVol > 0 && muted) {
+      setMuted(false);
+    } else if (newVol === 0 && !muted) {
+      setMuted(true);
     }
   };
 
@@ -510,8 +524,19 @@ export default function Home() {
         <span>{views}</span>
       </div>
 
-      <div style={{ position: 'fixed', top: '24px', left: '24px', cursor: 'pointer', zIndex: 200 }} onClick={toggleMute}>
-        {muted ? <VolumeX className="click-text" /> : <Volume2 className="click-text" />}
+      <div className="volume-control-wrapper">
+        <div className="volume-icon-btn" onClick={toggleMute}>
+          {muted || volume === 0 ? <VolumeX className="click-text" /> : <Volume2 className="click-text" />}
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value={muted ? 0 : volume}
+          onChange={handleVolumeChange}
+          className="volume-slider"
+        />
       </div>
 
       <audio

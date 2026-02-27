@@ -577,6 +577,77 @@ body {
     animation: float-animation 6s infinite ease-in-out;
 }
 
+/* Volume Control Styles */
+.volume-control-wrapper {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 30px;
+    padding: 8px;
+    gap: 0;
+    width: 44px;
+    /* Icon width + padding */
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+.volume-control-wrapper:hover {
+    width: 140px;
+    /* Expand on hover */
+    gap: 12px;
+}
+
+.volume-icon-btn {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+}
+
+.volume-slider {
+    -webkit-appearance: none;
+    width: 80px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
+    outline: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    cursor: pointer;
+}
+
+.volume-control-wrapper:hover .volume-slider {
+    opacity: 1;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 6px;
+    height: 16px;
+    background: #ffffff;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 6px;
+    height: 16px;
+    background: #ffffff;
+    border-radius: 4px;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+
 @keyframes float-animation {
 
     0%,
