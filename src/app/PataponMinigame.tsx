@@ -54,6 +54,9 @@ export default function PataponMinigame({ onClose }: PataponMinigameProps) {
     const [beatFlash, setBeatFlash] = useState(false);
     const [timerDisplay, setTimerDisplay] = useState("00:00");
 
+    const [defeatedDogaeens, setDefeatedDogaeens] = useState(0);
+    const [fallenPatapons, setFallenPatapons] = useState(0);
+
     const [hitIcons, setHitIcons] = useState<{ id: number, type: string, x: number, y: number }[]>([]);
 
     const soundsRef = useRef<Record<string, Howl>>({});
@@ -146,7 +149,10 @@ export default function PataponMinigame({ onClose }: PataponMinigameProps) {
                     setDogaeenState("HURT");
                     setDogaeenHp(prev => {
                         const newHp = Math.max(0, prev - (Math.random() * 8 + 15));
-                        if (newHp === 0) setGameOver("WIN");
+                        if (newHp === 0) {
+                            setGameOver("WIN");
+                            setDefeatedDogaeens(d => d + 1);
+                        }
                         return newHp;
                     });
                     setTimeout(() => setDogaeenState("IDLE"), 500);
@@ -244,7 +250,10 @@ export default function PataponMinigame({ onClose }: PataponMinigameProps) {
                         if (heroState === "DEFEND") dmg = 3;
                         if (heroState === "RETREAT") dmg = 0;
                         const newHp = Math.max(0, prev - dmg);
-                        if (newHp === 0) setGameOver("LOSE");
+                        if (newHp === 0) {
+                            setGameOver("LOSE");
+                            setFallenPatapons(f => f + 1);
+                        }
                         return newHp;
                     });
                     setHeroState(prev => prev === "DEFEND" ? "DEFEND" : "HURT");
@@ -308,8 +317,14 @@ export default function PataponMinigame({ onClose }: PataponMinigameProps) {
                 )}
 
                 <div className="game-header">
+                    <div className="header-title-bar">
+                        <img src="/logo.png" alt="logo" className="minigame-logo" />
+                        <span className="minigame-title-text">tiboryeah | Patapon</span>
+                    </div>
                     <div className="header-stats">
+                        <div className="stat-box">defeated: {defeatedDogaeens}</div>
                         <div className="timer">{timerDisplay}</div>
+                        <div className="stat-box">fallen: {fallenPatapons}</div>
                         <div className="combo-counter">Combo: {combo}</div>
                     </div>
                 </div>

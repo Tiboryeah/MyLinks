@@ -614,6 +614,7 @@ body {
 
 .volume-slider {
     -webkit-appearance: none;
+    appearance: none;
     width: 80px;
     height: 6px;
     background: rgba(255, 255, 255, 0.2);
@@ -1382,9 +1383,20 @@ body {
 .header-stats {
     display: flex;
     justify-content: center;
-    align-items: baseline;
-    gap: 30px;
+    align-items: center;
+    gap: 20px;
     margin-top: 10px;
+}
+
+.stat-box {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .timer {
@@ -1394,9 +1406,33 @@ body {
     color: white;
 }
 
+.combo-counter {
+    color: #ed8936;
+    font-weight: bold;
+}
+
 .beat-flash .patapon-minigame-container {
     box-shadow: 0 0 60px rgba(237, 137, 54, 0.8);
     border-color: #fff;
+}
+
+.header-title-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.minigame-logo {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+.minigame-title-text {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    letter-spacing: 0.5px;
 }
 
 .hatampon-side {
