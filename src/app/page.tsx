@@ -187,7 +187,7 @@ export default function Home() {
         setBgAudioSrc("/everlong.mp3");
       }
     }
-  }, [status?.spotify?.track_id]);
+  }, [status?.spotify?.track_id, bgAudioSrc]);
 
   useEffect(() => {
     if (audioRef.current && !muted) {
