@@ -200,13 +200,13 @@ body {
 
 .profile-info-header {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    padding: 20px 30px 0;
+    flex-direction: column;
+    padding: 20px 30px 10px;
+    gap: 12px;
 }
 
 .profile-names {
-    flex: 1;
+    width: 100%;
 }
 
 .profile-bio {
@@ -224,19 +224,42 @@ body {
 .badges-container {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
-    background: rgba(0, 0, 0, 0.4);
-    padding: 8px;
-    border-radius: 12px;
-    border: 1px solid var(--glass-border);
-    max-width: 140px;
-    justify-content: flex-end;
+    gap: 8px;
+    padding: 4px 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    width: fit-content;
 }
 
-.badge-item {
-    width: 20px;
-    height: 20px;
-    transition: transform 0.2s ease;
+.status-badge {
+    margin: 0 30px 24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px 16px;
+    border-radius: 100px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    border: 1px solid var(--glass-border);
+}
+
+.status-badge.riot-id {
+    color: #ff4e50;
+    background: rgba(255, 78, 80, 0.1);
+    border-color: rgba(255, 78, 80, 0.2);
+}
+
+.badge-label {
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+}
+
+.badge-value {
+    color: white;
+    font-weight: 600;
 }
 
 .badge-item:hover {

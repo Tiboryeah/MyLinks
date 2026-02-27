@@ -208,13 +208,24 @@ export default function Home() {
         {/* Discord Bio */}
         {profile?.user?.bio && (
           <div className="profile-bio">
-            <p>{profile.user.bio}</p>
+            <p>
+              {profile.user.bio
+                .split('\n')
+                .filter(line => !line.includes('vercel.app'))
+                .join('\n')
+                .trim()}
+            </p>
           </div>
         )}
 
-        <div className="status-badge">
-          <Gamepad2 size={14} />
-          <span>Ｔｉｂｏｒｙ#Vayne</span>
+        <div className="status-badge riot-id">
+          <div className="riot-icon">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" />
+            </svg>
+          </div>
+          <span className="badge-label">Riot ID:</span>
+          <span className="badge-value">Ｔｉｂｏｒｙ#Vayne</span>
         </div>
 
         {/* Presence Widget */}
@@ -250,7 +261,7 @@ export default function Home() {
                 </>
               ) : (
                 <div className="activity-text empty">
-                  <p>Haciendo cosas cuestionables</p>
+                  <p>Currently doing nothing...</p>
                 </div>
               )}
             </div>
