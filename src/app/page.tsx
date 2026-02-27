@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { useDiscordStatus } from './useDiscordStatus';
+import { useDiscordStatus, DiscordStatus } from './useDiscordStatus';
 import {
   Instagram,
   Github,
@@ -11,8 +11,31 @@ import {
   VolumeX,
   Music,
   Gamepad2,
-  Globe
+  Globe,
+  ExternalLink
 } from 'lucide-react';
+
+// Custom Bat Icon (SVG)
+const BatIcon = ({ style }: { style?: React.CSSProperties }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width="150"
+    height="150"
+    fill="currentColor"
+    className="bat-parallax bat-float"
+    style={style}
+  >
+    <path d="M12 4.5C10.5 4.5 9 5.5 8 7c-1-1.5-2.5-2.5-4-2.5-1.5 0-3 1-3 3 0 4 5 10 11 12 6-2 11-8 11-12 0-2-1.5-3-3-3-1.5 0-3 1-4 2.5-1-1.5-2.5-2.5-4-2.5z" />
+    <path d="M12 2L10.5 5h3L12 2zM4 6c0 0 2 0 4 2s0 4 0 4-4-2-4-6zm16 0c0 0-2 0-4 2s0 4 0 4 4-2 4-6zM2 10s3 1 5 1 5-1 5-1 3 1 5 1 5-1 5-1-2 5-10 7-10-7-10-7z" />
+  </svg>
+);
+
+// Steam Icon Component
+const SteamIcon = () => (
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+    <path d="M12 0a12 12 0 0 0-11.94 10.74l4.2 1.73a3.56 3.56 0 0 1 3.25-.43l2.84-4.14a3.57 3.57 0 1 1 2.37.1l-2.8 4.1a3.56 3.56 0 0 1-1.34 3.73l-.04.03a3.56 3.56 0 1 1-6.17-1.16l-4.32-1.78A12 12 0 1 0 12 0zM7.5 15.63a2.07 2.07 0 1 0 0-4.14 2.07 2.07 0 0 0 0 4.14zM16.5 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" />
+  </svg>
+);
 
 // Typewriter Component
 const Typewriter = ({ text }: { text: string }) => {
@@ -50,13 +73,6 @@ const Typewriter = ({ text }: { text: string }) => {
 
   return <h1 className="username">{displayText}</h1>;
 }
-
-// Steam Icon Component
-const SteamIcon = () => (
-  <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
-    <path d="M12 0a12 12 0 0 0-11.94 10.74l4.2 1.73a3.56 3.56 0 0 1 3.25-.43l2.84-4.14a3.57 3.57 0 1 1 2.37.1l-2.8 4.1a3.56 3.56 0 0 1-1.34 3.73l-.04.03a3.56 3.56 0 1 1-6.17-1.16l-4.32-1.78A12 12 0 1 0 12 0zM7.5 15.63a2.07 2.07 0 1 0 0-4.14 2.07 2.07 0 0 0 0 4.14zM16.5 6a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z" />
-  </svg>
-);
 
 export default function Home() {
   const [entered, setEntered] = useState(false);
@@ -103,15 +119,13 @@ export default function Home() {
       try {
         const response = await fetch('/api/views');
         const data = await response.json();
-        // If data.count exists, use it. If not (meaning first time ever), set to 0.
         if (data && typeof data.count === 'number') {
           setViews(data.count);
         } else {
           setViews(0);
         }
       } catch (error) {
-        console.error("Error fetching views from API route:", error);
-        setViews(0); // Fallback to 0 if API fails
+        setViews(0);
       }
     };
 
@@ -124,16 +138,13 @@ export default function Home() {
       audioRef.current.play().catch(e => console.log("Audio play blocked", e));
     }
 
-    // Increment hits via server-side API proxy
     try {
       const response = await fetch('/api/views?increment=true');
       const data = await response.json();
       if (data && typeof data.count === 'number') {
         setViews(data.count);
       }
-    } catch (error) {
-      console.error("Error incrementing views via API route:", error);
-    }
+    } catch (error) { }
   };
 
   const toggleMute = (e: React.MouseEvent) => {
@@ -143,6 +154,8 @@ export default function Home() {
       audioRef.current.muted = !muted;
     }
   };
+
+  const customStatus = status?.activities?.find(a => a.type === 4);
 
   return (
     <main className="main-container">
@@ -181,15 +194,48 @@ export default function Home() {
 
       {/* Profile Card */}
       <div className={`profile-card ${entered ? 'visible' : ''}`}>
-        <div className="avatar-container">
+
+        {/* Banner Section */}
+        <div className="banner-area">
           <img
-            src={status?.discord_user ? `https://cdn.discordapp.com/avatars/${status.discord_user.id}/${status.discord_user.avatar}.png?size=256` : "https://github.com/Tiboryeah.png"}
-            alt="Avatar"
-            className="avatar"
+            src={`https://dcdn.dstn.to/banner/${discordId}`}
+            className="card-banner"
+            onError={(e) => (e.currentTarget.style.display = 'none')}
+            alt="Discord Banner"
           />
         </div>
 
-        <Typewriter text="tiboryeah" />
+        <div className="avatar-wrapper">
+          <div className="avatar-container">
+            <img
+              src={status?.discord_user ? `https://cdn.discordapp.com/avatars/${status.discord_user.id}/${status.discord_user.avatar}.png?size=256` : "https://github.com/Tiboryeah.png"}
+              alt="Avatar"
+              className="avatar"
+            />
+            {status && (
+              <div className={`status-dot ${status.status}`} />
+            )}
+          </div>
+
+          {/* Custom Status Bubble */}
+          {customStatus && (
+            <div className="custom-status-bubble">
+              {customStatus.emoji && (
+                <span className="status-emoji">
+                  {customStatus.emoji.id ? (
+                    <img src={`https://cdn.discordapp.com/emojis/${customStatus.emoji.id}.${customStatus.emoji.animated ? 'gif' : 'png'}`} className="emoji-img" alt="emoji" />
+                  ) : customStatus.emoji.name}
+                </span>
+              )}
+              {customStatus.state}
+            </div>
+          )}
+        </div>
+
+        <div className="profile-info">
+          <h2 className="display-name">{status?.discord_user?.global_name || "tiboryeah"}</h2>
+          <Typewriter text="tiboryeah" />
+        </div>
 
         <div className="status-badge">
           <Gamepad2 size={14} />
@@ -201,28 +247,39 @@ export default function Home() {
         {/* Discord Presence Widget */}
         {status && (
           <div className="discord-widget">
-            <div style={{ position: 'relative' }}>
-              <img
-                src={`https://cdn.discordapp.com/avatars/${status.discord_user.id}/${status.discord_user.avatar}.png?size=64`}
-                alt="Discord Avatar"
-                style={{ width: '48px', height: '48px', borderRadius: '12px' }}
-              />
-              <div style={{
-                position: 'absolute',
-                bottom: '-2px',
-                right: '-2px',
-                width: '14px',
-                height: '14px',
-                borderRadius: '50%',
-                backgroundColor: status.status === 'online' ? '#3ba55c' : status.status === 'dnd' ? '#ed4245' : status.status === 'idle' ? '#faa61a' : '#747f8d',
-                border: '3px solid #1a1a1a'
-              }} />
-            </div>
-            <div>
-              <p style={{ fontWeight: 600, fontSize: '0.9rem' }}>{status.discord_user.username}</p>
-              <p style={{ fontSize: '0.8rem', opacity: 0.6 }}>
-                {status.listening_to_spotify ? `Listening to ${status.spotify.song}` : (status.activities?.[0]?.name ? `Playing ${status.activities[0].name}` : "Haciendo cosas cuestionables")}
-              </p>
+            <div className="activity-info">
+              {status.listening_to_spotify ? (
+                <>
+                  <img src={status.spotify.album_art_url} className="activity-img" alt="Spotify" />
+                  <div className="activity-text">
+                    <p className="activity-title">Listening to Spotify</p>
+                    <p className="activity-name">{status.spotify.song}</p>
+                    <p className="activity-detail">by {status.spotify.artist}</p>
+                  </div>
+                </>
+              ) : status.activities.length > 0 && status.activities[0].type !== 4 ? (
+                <>
+                  {status.activities[0].assets?.large_image ? (
+                    <img
+                      src={`https://cdn.discordapp.com/app-assets/${status.activities[0].id}/${status.activities[0].assets.large_image}.png`}
+                      className="activity-img"
+                      alt="Game"
+                    />
+                  ) : (
+                    <div className="activity-icon-placeholder"><Gamepad2 size={24} /></div>
+                  )}
+                  <div className="activity-text">
+                    <p className="activity-title">Playing A Game</p>
+                    <p className="activity-name">{status.activities[0].name}</p>
+                    {status.activities[0].details && <p className="activity-detail">{status.activities[0].details}</p>}
+                    {status.activities[0].state && <p className="activity-detail">{status.activities[0].state}</p>}
+                  </div>
+                </>
+              ) : (
+                <div className="activity-text empty">
+                  <p>Haciendo cosas cuestionables</p>
+                </div>
+              )}
             </div>
           </div>
         )}

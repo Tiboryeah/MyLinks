@@ -4,13 +4,42 @@ import { useState, useEffect } from 'react';
 
 export interface DiscordStatus {
     status: 'online' | 'idle' | 'dnd' | 'offline';
-    activities: any[];
+    activities: {
+        type: number;
+        name: string;
+        state?: string;
+        details?: string;
+        emoji?: {
+            name: string;
+            id?: string;
+            animated?: boolean;
+        };
+        assets?: {
+            large_image?: string;
+            large_text?: string;
+            small_image?: string;
+            small_text?: string;
+        };
+    }[];
     discord_user: {
         username: string;
+        global_name: string;
         avatar: string;
         id: string;
+        discriminator: string;
+        public_flags?: number;
     };
-    spotify: any;
+    spotify: {
+        track_id: string;
+        timestamps: {
+            start: number;
+            end: number;
+        };
+        song: string;
+        artist: string;
+        album_art_url: string;
+        album: string;
+    } | null;
     listening_to_spotify: boolean;
 }
 
