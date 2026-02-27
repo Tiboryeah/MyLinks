@@ -67,7 +67,7 @@ export default function Home() {
   const [muted, setMuted] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [views, setViews] = useState<number | string>("...");
-  const [bgAudioSrc, setBgAudioSrc] = useState("/everlong.mp3");
+  const [bgAudioSrc, setBgAudioSrc] = useState<string | null>(null);
   const [volume, setVolume] = useState(0.25);
   const [isVolumeOpen, setIsVolumeOpen] = useState(false);
   const [showMinigame, setShowMinigame] = useState(false);
@@ -216,7 +216,7 @@ export default function Home() {
   }, [status?.spotify?.track_id, bgAudioSrc]);
 
   useEffect(() => {
-    if (audioRef.current) {
+    if (audioRef.current && entered) {
       if (showMinigame) {
         audioRef.current.pause();
       } else if (!muted) {
@@ -226,7 +226,7 @@ export default function Home() {
         });
       }
     }
-  }, [bgAudioSrc, muted, volume, showMinigame]);
+  }, [bgAudioSrc, muted, volume, showMinigame, entered]);
 
   // Audio Fade Effect
   const handleAudioTimeUpdate = () => {
@@ -268,7 +268,10 @@ export default function Home() {
 
   const handleEnter = async () => {
     setEntered(true);
-    if (audioRef.current) audioRef.current.play().catch(() => { });
+    // Only set default if Spotify isn't already sync'd
+    if (!bgAudioSrc) {
+      setBgAudioSrc("/everlong.mp3");
+    }
     try {
       const res = await fetch('/api/views?increment=true');
       const data = await res.json();
@@ -298,21 +301,28 @@ export default function Home() {
   return (
     <main className="main-container">
       {bats.map(bat => (
-        <img
+        <div
           key={bat.id}
-          src="/bat.webp"
-          alt="Bat"
-          className="bat-parallax bat-float"
+          className="bat-parallax"
           style={{
+            position: 'fixed',
             top: bat.top,
             left: bat.left,
-            width: `${bat.size}px`,
-            opacity: 0.4,
             zIndex: 1,
-            animationDelay: bat.delay,
-            transform: `translate(${mousePos.x * bat.speed}px, ${mousePos.y * bat.speed}px)`
+            pointerEvents: 'none'
           }}
-        />
+        >
+          <img
+            src="/bat.webp"
+            alt="Bat"
+            className="bat-float"
+            style={{
+              width: `${bat.size}px`,
+              opacity: 0.4,
+              animationDelay: bat.delay
+            }}
+          />
+        </div>
       ))}
 
       <div
@@ -344,11 +354,14 @@ export default function Home() {
         />
       ))}
 
-      <div className={`landing-overlay ${entered ? 'hidden' : ''}`} onClick={handleEnter}>
-        <p className="click-text">click to enter ...</p>
+      <div className={`landing-overlay ${entered ? 'exit-animation' : ''}`} onClick={handleEnter}>
+        <div className="overlay-content">
+          <p className="click-text">click to enter ...</p>
+          <div className="glow-effect"></div>
+        </div>
       </div>
 
-      <div className={`profile-card ${entered ? 'visible' : ''}`}>
+      <div className={`profile-card ${entered ? 'entry-animation' : ''}`}>
 
         {/* Banner with DCDN source */}
         <div className="banner-area">
@@ -609,7 +622,7 @@ export default function Home() {
 
       <audio
         ref={audioRef}
-        src={bgAudioSrc}
+        src={bgAudioSrc || undefined}
         loop
         muted={muted}
         onTimeUpdate={handleAudioTimeUpdate}
