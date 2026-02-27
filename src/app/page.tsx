@@ -16,6 +16,7 @@ import {
   Skull,
   ExternalLink
 } from 'lucide-react';
+import PataponMinigame from './PataponMinigame';
 
 // Typewriter Component
 const Typewriter = ({ text, className, as: Tag = "h1" }: { text: string; className?: string; as?: any }) => {
@@ -69,6 +70,7 @@ export default function Home() {
   const [bgAudioSrc, setBgAudioSrc] = useState("/everlong.mp3");
   const [volume, setVolume] = useState(0.5);
   const [isVolumeOpen, setIsVolumeOpen] = useState(false);
+  const [showMinigame, setShowMinigame] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
@@ -189,7 +191,13 @@ export default function Home() {
           const response = await fetch(`/api/music?q=${query}`);
           const data = await response.json();
           if (data.data && data.data.length > 0) {
-            const previewUrl = data.data[0].preview;
+            // Find a match that closely resembles artist and title to avoid playing similar but wrong songs
+            const match = data.data.find((track: any) =>
+              track.title.toLowerCase().includes(status.spotify!.song.toLowerCase()) ||
+              track.artist.name.toLowerCase().includes(status.spotify!.artist.toLowerCase())
+            ) || data.data[0];
+
+            const previewUrl = match.preview;
             if (previewUrl && previewUrl !== bgAudioSrc) {
               setBgAudioSrc(previewUrl);
             }
@@ -208,13 +216,17 @@ export default function Home() {
   }, [status?.spotify?.track_id, bgAudioSrc]);
 
   useEffect(() => {
-    if (audioRef.current && !muted) {
-      audioRef.current.volume = volume;
-      audioRef.current.play().catch(() => {
-        console.log("Autoplay prevented or audio source changed.");
-      });
+    if (audioRef.current) {
+      if (showMinigame) {
+        audioRef.current.pause();
+      } else if (!muted) {
+        audioRef.current.volume = volume;
+        audioRef.current.play().catch(() => {
+          console.log("Autoplay prevented or audio source changed.");
+        });
+      }
     }
-  }, [bgAudioSrc, muted, volume]);
+  }, [bgAudioSrc, muted, volume, showMinigame]);
 
   // Audio Fade Effect
   const handleAudioTimeUpdate = () => {
@@ -271,6 +283,17 @@ export default function Home() {
   };
 
   const customStatus = status?.activities?.find(a => a.type === 4);
+
+  const handleOpenMinigame = () => {
+    // Basic mobile/tablet detection
+    const isMobileOrTablet = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (window.innerWidth <= 1024);
+
+    if (isMobileOrTablet) {
+      alert("Patapon Minigame is only available on Desktop (Keyboard required)!");
+      return;
+    }
+    setShowMinigame(true);
+  };
 
   return (
     <main className="main-container">
@@ -533,7 +556,16 @@ export default function Home() {
         </div>
       </div>
 
-      <img src="/tatepon.png" alt="Tatepon" className="tatepon-corner" />
+      <div className="absolute -bottom-4 -left-4 w-24 h-24 z-10 animate-float opacity-80 hover:opacity-100 transition-opacity cursor-pointer group" onClick={handleOpenMinigame}>
+        <img
+          src="/tatepon.png"
+          alt="Tatepon"
+          className="tatepon-corner"
+          style={{ cursor: 'pointer' }}
+        />
+      </div>
+
+      {showMinigame && <PataponMinigame onClose={() => setShowMinigame(false)} />}
 
       <div className="views-counter">
         <Eye size={14} />
