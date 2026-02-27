@@ -777,3 +777,123 @@ body {
         transform: translateX(-50%) scale(1.05) translateY(-5px);
     }
 }
+
+/* --- RESPONSIVENESS SECTION --- */
+
+/* Tablets (1024px and below) */
+@media (max-width: 1024px) {
+    .profile-card {
+        width: 480px;
+    }
+
+    .display-name {
+        font-size: 1.6rem;
+    }
+}
+
+/* Mobile (768px and below) */
+@media (max-width: 768px) {
+    body {
+        overflow-y: auto;
+        /* Allow scrolling on mobile if content is long */
+    }
+
+    .main-container {
+        height: auto;
+        min-height: 100vh;
+        padding: 40px 0;
+        align-items: flex-start;
+        /* Start from top on mobile */
+    }
+
+    .profile-card {
+        width: 92vw;
+        max-width: 420px;
+        margin: 0 auto;
+    }
+
+    .banner-area {
+        height: 110px;
+    }
+
+    .avatar-wrapper {
+        margin-top: -45px;
+        padding: 0 20px;
+    }
+
+    .avatar {
+        width: 90px;
+        height: 90px;
+        border-width: 4px;
+    }
+
+    .status-dot {
+        width: 20px;
+        height: 20px;
+        border-width: 4px;
+        bottom: 8px;
+        right: 8px;
+    }
+
+    .profile-info-header {
+        padding: 20px 20px 10px;
+    }
+
+    .display-name {
+        font-size: 1.4rem;
+    }
+
+    .about-section,
+    .discord-widget,
+    .server-invites {
+        margin: 0 20px 20px;
+    }
+
+    .links-grid {
+        padding: 0 20px 30px;
+        gap: 12px;
+    }
+
+    .social-link {
+        width: 44px;
+        height: 44px;
+    }
+
+    /* Move background elements behind card and reduce opacity for mobile */
+    .patapon-character {
+        opacity: 0.06 !important;
+        z-index: -1 !important;
+        pointer-events: none;
+    }
+
+    .bat-parallax {
+        opacity: 0.1 !important;
+        z-index: -2 !important;
+    }
+
+    .tatepon-corner {
+        width: 80px !important;
+        bottom: 15px !important;
+        left: 15px !important;
+        opacity: 0.4 !important;
+    }
+
+    .views-counter {
+        bottom: 15px !important;
+        right: 15px !important;
+        font-size: 0.7rem !important;
+    }
+}
+
+/* Ultra Small Phones */
+@media (max-width: 380px) {
+    .user-info-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+
+    .separator {
+        display: none;
+    }
+}
