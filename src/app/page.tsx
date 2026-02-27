@@ -12,7 +12,8 @@ import {
   Music,
   Gamepad2,
   Globe,
-  Info
+  Info,
+  Skull
 } from 'lucide-react';
 
 // Typewriter Component
@@ -64,19 +65,91 @@ export default function Home() {
   const [muted, setMuted] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [views, setViews] = useState<number | string>("...");
+  const [bgAudioSrc, setBgAudioSrc] = useState("/everlong.mp3");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const discordId = "952780497761730560";
   const { status, profile } = useDiscordData(discordId);
 
+
   const bats = useMemo(() => [
-    { id: 1, top: '10%', left: '5%', size: 130, speed: 0.06, delay: '0s' },
-    { id: 2, top: '20%', left: '15%', size: 90, speed: 0.04, delay: '1.2s' },
-    { id: 3, top: '40%', left: '8%', size: 110, speed: 0.05, delay: '2.5s' },
-    { id: 4, top: '60%', left: '20%', size: 70, speed: 0.03, delay: '0.8s' },
-    { id: 5, top: '75%', left: '4%', size: 100, speed: 0.07, delay: '3.1s' },
+    { id: 1, top: '8%', left: '10%', size: 130, speed: 0.06, delay: '0s' },
+    { id: 2, top: '20%', left: '35%', size: 90, speed: 0.04, delay: '1.2s' },
+    { id: 3, top: '38%', left: '17%', size: 110, speed: 0.05, delay: '2.5s' },
+    { id: 4, top: '60%', left: '45%', size: 70, speed: 0.03, delay: '0.8s' },
+    { id: 5, top: '74%', left: '12%', size: 100, speed: 0.07, delay: '3.1s' },
     { id: 6, top: '85%', left: '18%', size: 85, speed: 0.04, delay: '1.5s' },
+    { id: 7, top: '30%', left: '38%', size: 75, speed: 0.05, delay: '2s' },
+    { id: 8, top: '5%', left: '40%', size: 85, speed: 0.06, delay: '3.5s' },
+    { id: 9, top: '54%', left: '32%', size: 95, speed: 0.04, delay: '1s' },
+    { id: 10, top: '92%', left: '40%', size: 105, speed: 0.07, delay: '4s' },
   ], []);
+
+  // Ultra-stable distribution: 5x10 Grid with zero jitter to prevent any overlaps
+  const pataponArmy = useMemo(() => {
+    const list: any[] = [];
+
+    // 1. Define vertical-heavy grid (5 columns x 10 rows = 50 slots)
+    const slots: { t: number; l: number }[] = [];
+    const cols = 5;
+    const rows = 10;
+
+    for (let c = 0; c < cols; c++) {
+      for (let r = 0; r < rows; r++) {
+        slots.push({
+          t: 5 + r * 9.5, // 9.5% vertical gap ensures tall flags don't touch
+          l: 2 + c * 8.5  // 8.5% horizontal gap for lateral breathing room
+        });
+      }
+    }
+
+    // 2. Exact Bat & Tatepon positions for precise dodging
+    const exclusionZones = [
+      { t: 8, l: 10, r: 8 },   // Bat 1
+      { t: 20, l: 35, r: 7 },  // Bat 2
+      { t: 38, l: 17, r: 8 },  // Bat 3
+      { t: 60, l: 45, r: 8 },  // Bat 4
+      { t: 74, l: 12, r: 8 },  // Bat 5
+      { t: 85, l: 18, r: 7 },  // Bat 6
+      { t: 30, l: 38, r: 7 },  // New Bat 7
+      { t: 5, l: 40, r: 7 },   // New Bat 8
+      { t: 54, l: 32, r: 7 },  // New Bat 9
+      { t: 92, l: 40, r: 8 },  // New Bat 10
+      { t: 90, l: 5, r: 12 },  // Tatepon guard
+    ];
+
+    // Filter slots that are too close to bats/elements
+    let safeSlots = slots.filter(s => {
+      return !exclusionZones.some(z => {
+        const dist = Math.sqrt(Math.pow(s.t - z.t, 2) + Math.pow(s.l - z.l, 2));
+        return dist < z.r;
+      });
+    });
+
+    // 3. Sequential assignment to ensure homogeneous spread without gaps
+    const validExtra = [2, 3, 4, 7, 8, 10, 11, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31];
+    const allValid = [
+      ...Array.from({ length: 12 }, (_, i) => ({ id: i + 1, isExtra: false, name: `patapon_${i + 1}`, isBoss: false })),
+      ...validExtra.map(id => ({ id: id + 12, isExtra: true, name: `patapon_${id}`, isBoss: id === 26 }))
+    ];
+
+    allValid.forEach((unit, idx) => {
+      if (idx < safeSlots.length) {
+        const slot = safeSlots[idx];
+        const scale = 65;
+
+        list.push({
+          ...unit,
+          top: `${slot.t}%`,
+          left: `${slot.l}%`,
+          size: scale,
+          delay: `${idx * 0.1}s`,
+        });
+      }
+    });
+
+    return list;
+  }, []);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -88,6 +161,41 @@ export default function Home() {
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
+
+  // Sync background music with Spotify using Deezer API for previews
+  useEffect(() => {
+    if (status?.listening_to_spotify && status.spotify) {
+      const fetchPreview = async () => {
+        try {
+          const query = encodeURIComponent(`${status.spotify!.artist} ${status.spotify!.song}`);
+          const response = await fetch(`/api/music?q=${query}`);
+          const data = await response.json();
+          if (data.data && data.data.length > 0) {
+            const previewUrl = data.data[0].preview;
+            if (previewUrl && previewUrl !== bgAudioSrc) {
+              setBgAudioSrc(previewUrl);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching music preview:", error);
+        }
+      };
+      fetchPreview();
+    } else {
+      // Revert to default or keep last if desired. Let's revert to Everlong.
+      if (bgAudioSrc !== "/everlong.mp3") {
+        setBgAudioSrc("/everlong.mp3");
+      }
+    }
+  }, [status?.spotify?.track_id]);
+
+  useEffect(() => {
+    if (audioRef.current && !muted) {
+      audioRef.current.play().catch(() => {
+        console.log("Autoplay prevented or audio source changed.");
+      });
+    }
+  }, [bgAudioSrc, muted]);
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = 0.25;
@@ -142,7 +250,34 @@ export default function Home() {
         />
       ))}
 
+      <div
+        className="ambient-glow"
+        style={{
+          transform: `translate(${mousePos.x}px, ${mousePos.y}px)`,
+          left: 'calc(50% - 300px)',
+          top: 'calc(50% - 300px)'
+        }}
+      />
+
+
       <div className="background-overlay" style={{ backgroundImage: `url('/background.png')` }} />
+
+      {pataponArmy.map(p => (
+        <img
+          key={p.id}
+          src={p.isExtra ? `/characters_extra/${p.name}.png` : `/characters/${p.name}.png`}
+          alt={p.name}
+          className={`patapon-character ${p.isBoss ? 'patapon-boss' : ''}`}
+          style={{
+            position: 'fixed',
+            top: p.top,
+            left: p.left,
+            width: `${p.size}px`,
+            animationDelay: p.delay,
+            zIndex: 1,
+          }}
+        />
+      ))}
 
       <div className={`landing-overlay ${entered ? 'hidden' : ''}`} onClick={handleEnter}>
         <p className="click-text">click to enter ...</p>
@@ -199,11 +334,20 @@ export default function Home() {
               {status?.discord_user?.primary_guild && (
                 <div className="guild-badge" title="Primary Server">
                   <img
-                    src={`https://cdn.discordapp.com/icons/${status.discord_user.primary_guild.identity_guild_id}/${status.discord_user.primary_guild.badge}.png`}
+                    src={`https://cdn.discordapp.com/clan-badges/${status.discord_user.primary_guild.identity_guild_id}/${status.discord_user.primary_guild.badge}.png`}
                     alt="guild-icon"
                     className="guild-icon"
                     onError={(e) => {
+                      // Fallback to a skull if the image fails
                       e.currentTarget.style.display = 'none';
+                      const parent = e.currentTarget.parentElement;
+                      if (parent && !parent.querySelector('.fallback-skull')) {
+                        const skull = document.createElement('span');
+                        skull.className = 'fallback-skull';
+                        skull.innerText = '💀';
+                        skull.style.fontSize = '12px';
+                        parent.insertBefore(skull, e.currentTarget);
+                      }
                     }}
                   />
                   <span>{status.discord_user.primary_guild.tag}</span>
@@ -243,8 +387,8 @@ export default function Home() {
               <path d="M12 2L4.5 20.29l.71.71L12 18l6.79 3 .71-.71z" />
             </svg>
           </div>
-          <span className="badge-label">Riot ID:</span>
-          <span className="badge-value">Ｔｉｂｏｒｙ#Vayne</span>
+          <span className="badge-label">RIOT ID:</span>
+          <span className="badge-value">ＴＲＬ Ｔｉｂｏｒｙ#Vayne</span>
         </div>
 
         {/* Presence Widget */}
@@ -255,7 +399,7 @@ export default function Home() {
                 <>
                   <img src={status.spotify.album_art_url} className="activity-img" alt="Spotify" />
                   <div className="activity-text">
-                    <p className="activity-title">Listening to Spotify</p>
+                    <p className="activity-title">Listening to Spotify <span className="sync-tag">Synced Audio</span></p>
                     <p className="activity-name">{status.spotify.song}</p>
                     <p className="activity-detail">by {status.spotify.artist}</p>
                   </div>
@@ -296,6 +440,39 @@ export default function Home() {
           </div>
         )}
 
+        {/* Discord Server Invitations */}
+        <div className="server-invites">
+          <div className="server-card">
+            <div className="server-info">
+              <img
+                src="https://cdn.discordapp.com/icons/1269057940241907714/a_b4f51ac71594459aaf05d5ca08149e83.gif?size=64"
+                className="server-icon"
+                alt="Community Icon"
+              />
+              <div className="server-text">
+                <p className="server-label">Comunidad</p>
+                <p className="server-name">⚝ 𝒯𝒽𝑒 𝑅𝒾𝓈𝒾𝓃𝑔 𝐿𝑒𝑔𝑒𝓃𝒹𝓈 ... ⚚</p>
+              </div>
+            </div>
+            <a href="https://discord.gg/RXAWpGVyUG" target="_blank" rel="noopener noreferrer" className="join-btn">Join</a>
+          </div>
+
+          <div className="server-card nsfw-server">
+            <div className="server-info">
+              <img
+                src="https://cdn.discordapp.com/icons/1462990622855008415/89b18b2c8abb216d7889844e83b833fe.webp?size=64"
+                className="server-icon"
+                alt="NSFW Icon"
+              />
+              <div className="server-text">
+                <p className="server-label">NSFW Game</p>
+                <p className="server-name">Kokoro: 3 Souls</p>
+              </div>
+            </div>
+            <a href="https://discord.gg/xXHknDwVb6" target="_blank" rel="noopener noreferrer" className="join-btn">Join</a>
+          </div>
+        </div>
+
         <div className="links-grid">
           <a title="Instagram" href="https://www.instagram.com/tiboryeah/" target="_blank" rel="noopener noreferrer" className="social-link"><Instagram /></a>
           <a title="Twitch" href="https://www.twitch.tv/tiboryeah" target="_blank" rel="noopener noreferrer" className="social-link"><Twitch /></a>
@@ -306,7 +483,7 @@ export default function Home() {
         </div>
       </div>
 
-      <img src="/tatepon.png" alt="Tatepon" className="tatepon-corner" />
+      <img src="/Tatepon.png" alt="Tatepon" className="tatepon-corner" />
 
       <div className="views-counter">
         <Eye size={14} />
@@ -317,7 +494,7 @@ export default function Home() {
         {muted ? <VolumeX className="click-text" /> : <Volume2 className="click-text" />}
       </div>
 
-      <audio ref={audioRef} src="/everlong.mp3" loop muted={muted} />
+      <audio ref={audioRef} src={bgAudioSrc} loop muted={muted} />
     </main>
   );
 }
