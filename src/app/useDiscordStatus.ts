@@ -7,6 +7,7 @@ export interface DiscordStatus {
     activities: {
         type: number;
         name: string;
+        application_id?: string;
         state?: string;
         details?: string;
         emoji?: {

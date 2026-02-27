@@ -197,12 +197,16 @@ export default function Home() {
 
         {/* Banner Section */}
         <div className="banner-area">
-          <img
-            src={`https://dcdn.dstn.to/banner/${discordId}`}
-            className="card-banner"
-            onError={(e) => (e.currentTarget.style.display = 'none')}
-            alt="Discord Banner"
-          />
+          {status?.discord_user ? (
+            <img
+              src={`https://dcdn.dstn.to/banner/${discordId}`}
+              className="card-banner"
+              onError={(e) => (e.currentTarget.style.display = 'none')}
+              alt="Discord Banner"
+            />
+          ) : (
+            <div className="card-banner-fallback" />
+          )}
         </div>
 
         <div className="avatar-wrapper">
@@ -218,7 +222,7 @@ export default function Home() {
           </div>
 
           {/* Custom Status Bubble */}
-          {customStatus && (
+          {customStatus && customStatus.state && (
             <div className="custom-status-bubble">
               {customStatus.emoji && (
                 <span className="status-emoji">
@@ -233,22 +237,20 @@ export default function Home() {
         </div>
 
         <div className="profile-info">
-          <h2 className="display-name">{status?.discord_user?.global_name || "tiboryeah"}</h2>
+          <h2 className="display-name">{status?.discord_user?.global_name || "Satoru Gojo"}</h2>
           <Typewriter text="tiboryeah" />
         </div>
 
         <div className="status-badge">
           <Gamepad2 size={14} />
           <span>Ｔｉｂｏｒｙ#Vayne</span>
-          <span>•</span>
-          <span>Heaven</span>
         </div>
 
         {/* Discord Presence Widget */}
         {status && (
           <div className="discord-widget">
             <div className="activity-info">
-              {status.listening_to_spotify ? (
+              {status.listening_to_spotify && status.spotify ? (
                 <>
                   <img src={status.spotify.album_art_url} className="activity-img" alt="Spotify" />
                   <div className="activity-text">
@@ -261,7 +263,7 @@ export default function Home() {
                 <>
                   {status.activities[0].assets?.large_image ? (
                     <img
-                      src={`https://cdn.discordapp.com/app-assets/${status.activities[0].id}/${status.activities[0].assets.large_image}.png`}
+                      src={`https://cdn.discordapp.com/app-assets/${status.activities[0].application_id}/${status.activities[0].assets.large_image}.png`}
                       className="activity-img"
                       alt="Game"
                     />
