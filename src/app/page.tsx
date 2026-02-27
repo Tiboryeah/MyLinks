@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 // Typewriter Component
-const Typewriter = ({ text }: { text: string }) => {
+const Typewriter = ({ text, className, as: Tag = "h1" }: { text: string; className?: string; as?: any }) => {
   const [displayText, setDisplayText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const period = 2000;
@@ -49,7 +49,7 @@ const Typewriter = ({ text }: { text: string }) => {
     }
   };
 
-  return <h2 className="username">{displayText}</h2>;
+  return <Tag className={className}>{displayText}</Tag>;
 }
 
 // Steam Icon Component
@@ -170,7 +170,7 @@ export default function Home() {
               alt="Avatar"
               className="avatar"
             />
-            {status && <div className={`status-dot ${status.status}`} />}
+            <div className={`status-dot ${status?.discord_status || 'offline'}`} />
           </div>
 
           {customStatus?.state && (
@@ -189,17 +189,26 @@ export default function Home() {
 
         <div className="profile-info-header">
           <div className="profile-names">
-            <h1 className="display-name">{profile?.user?.global_name || "Satoru Gojo"}</h1>
+            <Typewriter text={profile?.user?.global_name || "Satoru Gojo"} className="display-name" />
             <div className="user-info-row">
               <span className="username-text">tiboryeah</span>
               <span className="separator">•</span>
               <span className="nickname-text">Tibo</span>
 
-              {/* Custom Guild Badge (A7X) */}
-              <div className="guild-badge" title="Avenged Sevenfold Server">
-                <img src="https://em-content.zobj.net/source/apple/354/skull-and-crossbones_1f480.png" alt="skull" className="guild-icon" />
-                <span>A7X</span>
-              </div>
+              {/* Dynamic Guild Badge from Lanyard */}
+              {status?.discord_user?.primary_guild && (
+                <div className="guild-badge" title="Primary Server">
+                  <img
+                    src={`https://cdn.discordapp.com/icons/${status.discord_user.primary_guild.identity_guild_id}/${status.discord_user.primary_guild.badge}.png`}
+                    alt="guild-icon"
+                    className="guild-icon"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                  <span>{status.discord_user.primary_guild.tag}</span>
+                </div>
+              )}
 
               {/* Discord Badges */}
               {profile?.badges && profile.badges.length > 0 && (
@@ -239,7 +248,7 @@ export default function Home() {
         </div>
 
         {/* Presence Widget */}
-        {status && (
+        {status ? (
           <div className="discord-widget">
             <div className="activity-info">
               {status.listening_to_spotify && status.spotify ? (
@@ -251,29 +260,38 @@ export default function Home() {
                     <p className="activity-detail">by {status.spotify.artist}</p>
                   </div>
                 </>
-              ) : status.activities.length > 0 && status.activities[0].type !== 4 ? (
-                <>
-                  {status.activities[0].assets?.large_image ? (
-                    <img
-                      src={status.activities[0].assets.large_image.startsWith('mp:') ? status.activities[0].assets.large_image.replace('mp:', 'https://media.discordapp.net/') : `https://cdn.discordapp.com/app-assets/${status.activities[0].application_id}/${status.activities[0].assets.large_image}.png`}
-                      className="activity-img"
-                      alt="Game"
-                    />
-                  ) : (
-                    <div className="activity-icon-placeholder"><Gamepad2 size={24} /></div>
-                  )}
-                  <div className="activity-text">
-                    <p className="activity-title">Playing A Game</p>
-                    <p className="activity-name">{status.activities[0].name}</p>
-                    {status.activities[0].details && <p className="activity-detail">{status.activities[0].details}</p>}
-                    {status.activities[0].state && <p className="activity-detail">{status.activities[0].state}</p>}
-                  </div>
-                </>
-              ) : (
+              ) : status.activities.find(a => a.type !== 4) ? (() => {
+                const game = status.activities.find(a => a.type !== 4)!;
+                return (
+                  <>
+                    {game.assets?.large_image ? (
+                      <img
+                        src={game.assets.large_image.startsWith('mp:') ? game.assets.large_image.replace('mp:', 'https://media.discordapp.net/') : `https://cdn.discordapp.com/app-assets/${game.application_id}/${game.assets.large_image}.png`}
+                        className="activity-img"
+                        alt="Game"
+                      />
+                    ) : (
+                      <div className="activity-icon-placeholder"><Gamepad2 size={24} /></div>
+                    )}
+                    <div className="activity-text">
+                      <p className="activity-title">Playing A Game</p>
+                      <p className="activity-name">{game.name}</p>
+                      {game.details && <p className="activity-detail">{game.details}</p>}
+                      {game.state && <p className="activity-detail">{game.state}</p>}
+                    </div>
+                  </>
+                );
+              })() : (
                 <div className="activity-text empty">
-                  <p>Currently doing nothing...</p>
+                  <p>No activity detected...</p>
                 </div>
               )}
+            </div>
+          </div>
+        ) : (
+          <div className="discord-widget">
+            <div className="activity-text empty">
+              <p>Fetching presence data...</p>
             </div>
           </div>
         )}

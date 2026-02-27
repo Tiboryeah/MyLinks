@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 
 export interface DiscordStatus {
     status: 'online' | 'idle' | 'dnd' | 'offline';
+    discord_status: 'online' | 'idle' | 'dnd' | 'offline';
     activities: {
         type: number;
         name: string;
@@ -29,6 +30,14 @@ export interface DiscordStatus {
         id: string;
         discriminator: string;
         public_flags?: number;
+        primary_guild?: {
+            id: string;
+            name: string;
+            icon: string;
+            badge: string;
+            tag: string;
+            identity_guild_id: string;
+        };
     };
     spotify: {
         track_id: string;
