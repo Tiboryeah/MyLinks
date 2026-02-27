@@ -483,7 +483,7 @@ export default function Home() {
         </div>
       </div>
 
-      <img src="/Tatepon.png" alt="Tatepon" className="tatepon-corner" />
+      <img src="/tatepon.png" alt="Tatepon" className="tatepon-corner" />
 
       <div className="views-counter">
         <Eye size={14} />
