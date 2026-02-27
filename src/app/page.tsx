@@ -68,7 +68,23 @@ export default function Home() {
   const [views, setViews] = useState<number | string>("...");
   const [bgAudioSrc, setBgAudioSrc] = useState("/everlong.mp3");
   const [volume, setVolume] = useState(0.5);
+  const [isVolumeOpen, setIsVolumeOpen] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('.volume-control-wrapper')) {
+        setIsVolumeOpen(false);
+      }
+    };
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const discordId = "952780497761730560";
   const { status, profile } = useDiscordData(discordId);
@@ -524,8 +540,27 @@ export default function Home() {
         <span>{views}</span>
       </div>
 
-      <div className="volume-control-wrapper">
-        <div className="volume-icon-btn" onClick={toggleMute}>
+      <div
+        className={`volume-control-wrapper ${isVolumeOpen ? 'expanded' : ''}`}
+        onMouseEnter={() => setIsVolumeOpen(true)}
+        onMouseLeave={() => setIsVolumeOpen(false)}
+      >
+        <div
+          className="volume-icon-btn"
+          onClick={(e) => {
+            if (!isVolumeOpen && typeof window !== 'undefined' && window.innerWidth <= 768) {
+              setIsVolumeOpen(true);
+            } else {
+              toggleMute(e);
+            }
+          }}
+          onTouchStart={(e) => {
+            if (!isVolumeOpen) {
+              e.preventDefault();
+              setIsVolumeOpen(true);
+            }
+          }}
+        >
           {muted || volume === 0 ? <VolumeX className="click-text" /> : <Volume2 className="click-text" />}
         </div>
         <input
@@ -536,6 +571,7 @@ export default function Home() {
           value={muted ? 0 : volume}
           onChange={handleVolumeChange}
           className="volume-slider"
+          onTouchStart={(e) => e.stopPropagation()}
         />
       </div>
 

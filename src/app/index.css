@@ -597,9 +597,10 @@ body {
     overflow: hidden;
 }
 
-.volume-control-wrapper:hover {
+.volume-control-wrapper:hover,
+.volume-control-wrapper.expanded {
     width: 140px;
-    /* Expand on hover */
+    /* Expand on hover or tap */
     gap: 12px;
 }
 
@@ -621,10 +622,13 @@ body {
     opacity: 0;
     transition: opacity 0.3s ease;
     cursor: pointer;
+    pointer-events: none;
 }
 
-.volume-control-wrapper:hover .volume-slider {
+.volume-control-wrapper:hover .volume-slider,
+.volume-control-wrapper.expanded .volume-slider {
     opacity: 1;
+    pointer-events: auto;
 }
 
 .volume-slider::-webkit-slider-thumb {
