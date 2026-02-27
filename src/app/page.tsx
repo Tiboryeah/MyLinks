@@ -68,7 +68,7 @@ export default function Home() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [views, setViews] = useState<number | string>("...");
   const [bgAudioSrc, setBgAudioSrc] = useState("/everlong.mp3");
-  const [volume, setVolume] = useState(0.5);
+  const [volume, setVolume] = useState(0.25);
   const [isVolumeOpen, setIsVolumeOpen] = useState(false);
   const [showMinigame, setShowMinigame] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
