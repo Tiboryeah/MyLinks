@@ -190,19 +190,29 @@ export default function Home() {
         <div className="profile-info-header">
           <div className="profile-names">
             <h1 className="display-name">{profile?.user?.global_name || "Satoru Gojo"}</h1>
-            <Typewriter text="tiboryeah" />
-          </div>
+            <div className="user-info-row">
+              <span className="username-text">tiboryeah</span>
+              <span className="separator">•</span>
+              <span className="nickname-text">Tibo</span>
 
-          {/* Dynamic Badges from DCDN */}
-          {profile?.badges && profile.badges.length > 0 && (
-            <div className="badges-container">
-              {profile.badges.map(badge => (
-                <div key={badge.id} className="badge-item" title={badge.description}>
-                  <img src={`https://cdn.discordapp.com/badge-icons/${badge.icon}.png`} alt={badge.id} />
+              {/* Custom Guild Badge (A7X) */}
+              <div className="guild-badge" title="Avenged Sevenfold Server">
+                <img src="https://em-content.zobj.net/source/apple/354/skull-and-crossbones_1f480.png" alt="skull" className="guild-icon" />
+                <span>A7X</span>
+              </div>
+
+              {/* Discord Badges */}
+              {profile?.badges && profile.badges.length > 0 && (
+                <div className="badges-inline">
+                  {profile.badges.map(badge => (
+                    <div key={badge.id} className="badge-item" title={badge.description}>
+                      <img src={`https://cdn.discordapp.com/badge-icons/${badge.icon}.png`} alt={badge.id} />
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Discord Bio */}
