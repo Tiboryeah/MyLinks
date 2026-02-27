@@ -32,10 +32,6 @@ export interface DiscordStatus {
     };
     spotify: {
         track_id: string;
-        timestamps: {
-            start: number;
-            end: number;
-        };
         song: string;
         artist: string;
         album_art_url: string;
@@ -44,8 +40,28 @@ export interface DiscordStatus {
     listening_to_spotify: boolean;
 }
 
-export function useDiscordStatus(userId: string) {
-    const [data, setData] = useState<DiscordStatus | null>(null);
+export interface DiscordProfile {
+    user: {
+        id: string;
+        username: string;
+        global_name: string;
+        avatar: string;
+        banner: string | null;
+        banner_color: string | null;
+        accent_color: number | null;
+        bio: string | null;
+        public_flags: number;
+    };
+    badges: {
+        id: string;
+        description: string;
+        icon: string;
+    }[];
+}
+
+export function useDiscordData(userId: string) {
+    const [status, setStatus] = useState<DiscordStatus | null>(null);
+    const [profile, setProfile] = useState<DiscordProfile | null>(null);
 
     useEffect(() => {
         if (!userId) return;
@@ -54,19 +70,29 @@ export function useDiscordStatus(userId: string) {
             try {
                 const res = await fetch(`https://api.lanyard.rest/v1/users/${userId}`);
                 const json = await res.json();
-                if (json.success) {
-                    setData(json.data);
-                }
+                if (json.success) setStatus(json.data);
             } catch (err) {
-                console.error("Error fetching Discord status:", err);
+                console.error("Error fetching Lanyard:", err);
+            }
+        };
+
+        const fetchProfile = async () => {
+            try {
+                const res = await fetch(`https://dcdn.dstn.to/profile/${userId}`);
+                const json = await res.json();
+                // Some wrappers return { user, badges, ... } directly
+                if (json.user) setProfile(json);
+            } catch (err) {
+                console.error("Error fetching DCDN profile:", err);
             }
         };
 
         fetchStatus();
-        const interval = setInterval(fetchStatus, 30000); // Poll every 30s
+        fetchProfile();
 
-        return () => clearInterval(interval);
+        const statusInterval = setInterval(fetchStatus, 30000);
+        return () => clearInterval(statusInterval);
     }, [userId]);
 
-    return data;
+    return { status, profile };
 }
