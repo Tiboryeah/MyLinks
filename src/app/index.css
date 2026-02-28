@@ -40,20 +40,20 @@ body {
     overflow: hidden;
 }
 
-/* Scanlines Effect Overlay */
+/* Scanlines Effect Overlay - Optimized for GPU */
 .main-container::before {
     content: " ";
     display: block;
     position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    right: 0;
-    background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.03), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.03));
+    inset: 0;
+    background: linear-gradient(to bottom,
+            transparent 0%,
+            rgba(0, 0, 0, 0.05) 50%,
+            transparent 100%);
+    background-size: 100% 4px;
     z-index: 200;
-    background-size: 100% 3px, 3px 100%;
     pointer-events: none;
-    opacity: 0.2;
+    opacity: 0.1;
 }
 
 .background-overlay {
@@ -65,30 +65,38 @@ body {
     z-index: -1;
     background-size: cover;
     background-position: center;
-    filter: brightness(0.6);
-    transition: transform 0.5s ease-out;
+    transition: transform 0.8s ease-out;
+    will-change: transform;
+}
+
+.background-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 0;
 }
 
 .landing-overlay {
     position: fixed;
     inset: 0;
-    backdrop-filter: blur(20px);
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(10, 10, 10, 0.98);
+    /* Solid dark color instead of blur to avoid GPU glitches */
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 1000;
     cursor: pointer;
-    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s;
+    will-change: opacity;
 }
 
 .landing-overlay.exit-animation {
     opacity: 0;
-    scale: 1.1;
-    transform: translateY(-20px);
+    transform: translateY(-20px) scale(1.1);
     pointer-events: none;
-    backdrop-filter: blur(0px);
+    visibility: hidden;
 }
 
 .overlay-content {
@@ -158,7 +166,14 @@ body {
     box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.8);
     opacity: 0;
     transform: scale(0.9) translateY(30px);
-    transition: all 1s cubic-bezier(0.16, 1, 0.3, 1);
+    transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+}
+
+.main-container:not(.is-entered) .profile-card {
+    backdrop-filter: none;
 }
 
 .profile-card::before {
@@ -606,10 +621,23 @@ body {
 .bat-parallax {
     position: fixed;
     pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 1.5s ease-out, visibility 1.5s;
+}
+
+.main-container.show-decorations .bat-parallax {
+    opacity: 1;
+    visibility: visible;
 }
 
 .bat-float {
     animation: float-animation 6s infinite ease-in-out;
+    animation-play-state: paused;
+}
+
+.main-container.show-decorations .bat-float {
+    animation-play-state: running;
 }
 
 /* Volume Control Styles */
@@ -628,7 +656,8 @@ body {
     gap: 0;
     width: 44px;
     /* Icon width + padding */
-    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.4s ease;
+    will-change: width, transform;
     overflow: hidden;
 }
 
@@ -706,16 +735,22 @@ body {
 
 .ambient-glow {
     position: fixed;
-    width: 800px;
-    height: 800px;
-    background: radial-gradient(circle, var(--glow-color) 0%, transparent 70%);
+    width: 600px;
+    height: 600px;
+    /* Use multi-stop gradient instead of filter:blur for better performance */
+    background: radial-gradient(circle, var(--glow-color) 0%, rgba(192, 132, 252, 0.08) 30%, rgba(192, 132, 252, 0.02) 60%, transparent 80%);
     border-radius: 50%;
     pointer-events: none;
     z-index: 0;
-    filter: blur(100px);
-    mix-blend-mode: screen;
-    opacity: 0.6;
-    transition: transform 0.2s cubic-bezier(0.1, 0, 0.5, 1);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.1s linear, opacity 2s ease-out, visibility 2s;
+    will-change: transform;
+}
+
+.main-container.show-decorations .ambient-glow {
+    opacity: 0.4;
+    visibility: visible;
 }
 
 
@@ -843,13 +878,22 @@ body {
 
 .patapon-character {
     pointer-events: auto;
-    opacity: 0.15;
+    opacity: 0;
+    visibility: hidden;
     filter: invert(1);
     mix-blend-mode: screen;
     animation: patapon-march 2s infinite ease-in-out;
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation-play-state: paused;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 1.2s ease, visibility 1.2s;
+    will-change: transform, opacity;
     cursor: help;
     z-index: 1;
+}
+
+.main-container.show-decorations .patapon-character {
+    opacity: 0.15;
+    visibility: visible;
+    animation-play-state: running;
 }
 
 .patapon-character:hover {

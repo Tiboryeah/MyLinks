@@ -16,41 +16,39 @@ import {
   Skull,
   ExternalLink
 } from 'lucide-react';
-import PataponMinigame from './PataponMinigame';
+import dynamic from 'next/dynamic';
+const PataponMinigame = dynamic(() => import('./PataponMinigame'), { ssr: false });
 
-// Typewriter Component
-const Typewriter = ({ text, className, as: Tag = "h1" }: { text: string; className?: string; as?: any }) => {
+const Typewriter = ({ text, className, delay = 0, active = true, as: Tag = "h1" }: { text: string; className?: string; delay?: number; active?: boolean; as?: any }) => {
   const [displayText, setDisplayText] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-  const period = 2000;
   const [delta, setDelta] = useState(200);
 
   useEffect(() => {
-    let ticker = setInterval(() => {
-      tick();
-    }, delta);
+    if (!active) return;
 
-    return () => { clearInterval(ticker) };
-  }, [displayText, delta])
+    const tick = () => {
+      let fullText = text;
+      let updatedText = isDeleting ? fullText.substring(0, displayText.length - 1) : fullText.substring(0, displayText.length + 1);
 
-  const tick = () => {
-    let fullText = text;
-    let updatedText = isDeleting ? fullText.substring(0, displayText.length - 1) : fullText.substring(0, displayText.length + 1);
+      setDisplayText(updatedText);
 
-    setDisplayText(updatedText);
+      if (isDeleting) {
+        setDelta(100);
+      }
 
-    if (isDeleting) {
-      setDelta(100);
-    }
+      if (!isDeleting && updatedText === fullText) {
+        setIsDeleting(true);
+        setDelta(2000);
+      } else if (isDeleting && updatedText === "") {
+        setIsDeleting(false);
+        setDelta(200);
+      }
+    };
 
-    if (!isDeleting && updatedText === fullText) {
-      setIsDeleting(true);
-      setDelta(period);
-    } else if (isDeleting && updatedText === "") {
-      setIsDeleting(false);
-      setDelta(200);
-    }
-  };
+    const timer = setTimeout(tick, delta);
+    return () => clearTimeout(timer);
+  }, [displayText, delta, active, isDeleting, text]);
 
   return <Tag className={className}>{displayText}</Tag>;
 }
@@ -64,6 +62,7 @@ const SteamIcon = () => (
 
 export default function Home() {
   const [entered, setEntered] = useState(false);
+  const [showDecorations, setShowDecorations] = useState(false);
   const [muted, setMuted] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [views, setViews] = useState<number | string>("...");
@@ -172,6 +171,8 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (!entered) return; // Wait to track mouse until entered to prevent GPU artifacts
+
     const handleMouseMove = (e: MouseEvent) => {
       setMousePos({
         x: e.clientX - window.innerWidth / 2,
@@ -180,10 +181,12 @@ export default function Home() {
     };
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+  }, [entered]);
 
   // Sync background music with Spotify using Deezer API for previews
   useEffect(() => {
+    if (!entered) return; // Don't fetch music until entered to save bandwidth/CPU
+
     if (status?.listening_to_spotify && status.spotify) {
       const fetchPreview = async () => {
         try {
@@ -266,17 +269,23 @@ export default function Home() {
     fetchViews();
   }, []);
 
-  const handleEnter = async () => {
+  const handleEnter = () => {
+    if (entered) return;
     setEntered(true);
-    // Only set default if Spotify isn't already sync'd
+
+    // Staggered background loading to prevent frame drops
+    setTimeout(() => {
+      setShowDecorations(true);
+    }, 800);
+
+    // Non-blocking operations
     if (!bgAudioSrc) {
       setBgAudioSrc("/everlong.mp3");
     }
-    try {
-      const res = await fetch('/api/views?increment=true');
-      const data = await res.json();
+
+    fetch('/api/views?increment=true').then(res => res.json()).then(data => {
       setViews(data.count ?? 0);
-    } catch { }
+    }).catch(() => { });
   };
 
   const toggleMute = (e: React.MouseEvent) => {
@@ -299,7 +308,7 @@ export default function Home() {
   };
 
   return (
-    <main className="main-container">
+    <main className={`main-container ${entered ? 'is-entered' : ''} ${showDecorations ? 'show-decorations' : ''}`}>
       {bats.map(bat => (
         <div
           key={bat.id}
@@ -350,7 +359,10 @@ export default function Home() {
             width: `${p.size}px`,
             animationDelay: p.delay,
             zIndex: 1,
+            willChange: 'transform, opacity'
           }}
+          loading="lazy"
+          decoding="async"
         />
       ))}
 
@@ -402,7 +414,7 @@ export default function Home() {
 
         <div className="profile-info-header">
           <div className="profile-names">
-            <Typewriter text={profile?.user?.global_name || "Satoru Gojo"} className="display-name" />
+            <Typewriter text={profile?.user?.global_name || "Satoru Gojo"} className="display-name" active={entered} />
             <div className="user-info-row">
               <span className="username-text">tiboryeah</span>
               <span className="separator">•</span>
