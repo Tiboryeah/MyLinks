@@ -3,8 +3,8 @@ import "./index.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://my-links-orpin.vercel.app"),
-  title: "tiboryeah | Links, Discord & Creative Projects",
-  description: "Discover tiboryeah's social links, live Discord presence, creative projects, music and gaming profiles.",
+  title: "tiboryeah | Mi universo digital",
+  description: "Discord en vivo, música, gaming y proyectos creativos. Todo mi universo, en un solo lugar.",
   alternates: {
     canonical: "/",
   },
@@ -17,21 +17,21 @@ export const metadata: Metadata = {
     url: "/",
     siteName: "tiboryeah | MyLinks",
     locale: "en_US",
-    title: "tiboryeah | Links, Discord & Creative Projects",
-    description: "Social links, live Discord presence, music, gaming profiles and creative projects by tiboryeah.",
+    title: "tiboryeah | Mi universo digital",
+    description: "Discord en vivo, música, gaming y proyectos creativos. Todo mi universo, en un solo lugar.",
     images: [{
-      url: "/og-preview.jpg",
+      url: "/og-preview-v2.jpg",
       width: 1200,
       height: 630,
-      alt: "tiboryeah — Links, Discord and creative projects",
+      alt: "Logo de tiboryeah — Mi universo digital",
       type: "image/jpeg",
     }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "tiboryeah | Links, Discord & Creative Projects",
-    description: "Social links, live Discord presence, music, gaming profiles and creative projects.",
-    images: ["/og-preview.jpg"],
+    title: "tiboryeah | Mi universo digital",
+    description: "Discord en vivo, música, gaming y proyectos creativos. Todo mi universo, en un solo lugar.",
+    images: ["/og-preview-v2.jpg"],
   },
 };
 

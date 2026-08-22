@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, type CSSProperties, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useMemo, type CSSProperties, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react';
 import { useDiscordData } from './useDiscordStatus';
 import {
   Instagram,
@@ -146,6 +146,7 @@ export default function Home() {
   const [effectKey, setEffectKey] = useState(0);
   const effectTimerRef = useRef<NodeJS.Timeout | null>(null);
   const effectPlayingRef = useRef(false);
+  const effectReplayArmedRef = useRef(false);
 
   // Card scale to always fit within viewport height without scroll
   const cardWrapperRef = useRef<HTMLDivElement>(null);
@@ -494,8 +495,32 @@ export default function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileEffect, entered]);
 
-  const handleCardHover = () => {
+  const handleCardMouseEnter = (event: ReactMouseEvent<HTMLDivElement>) => {
+    const previousTarget = event.relatedTarget;
+    if (previousTarget instanceof Node && event.currentTarget.contains(previousTarget)) return;
+    if (!effectReplayArmedRef.current) return;
+
+    // Consume this entry even if the current animation is still playing.
+    // A fresh leave + enter will be required after it finishes.
+    effectReplayArmedRef.current = false;
     if (entered && profileEffect) playEffect();
+  };
+
+  const handleCardMouseLeave = (event: ReactMouseEvent<HTMLDivElement>) => {
+    const nextTarget = event.relatedTarget;
+    if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) return;
+
+    // Ignore synthetic leave events caused by animated/reflowing children while
+    // the pointer is still geometrically inside the main profile card.
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (
+      event.clientX >= bounds.left &&
+      event.clientX <= bounds.right &&
+      event.clientY >= bounds.top &&
+      event.clientY <= bounds.bottom
+    ) return;
+
+    effectReplayArmedRef.current = true;
   };
 
   // Auto-scale card to always fit viewport height — no scrolling needed
@@ -600,7 +625,6 @@ export default function Home() {
         ref={cardWrapperRef}
         className="profile-card-wrapper"
         style={{ transform: `scale(${cardScale})` }}
-        onMouseEnter={handleCardHover}
       >
         {/* Discord Profile Effect — OUTSIDE the card so Satoru's hands show */}
         {showEffect && profileEffect && (
@@ -614,7 +638,12 @@ export default function Home() {
           </div>
         )}
 
-        <div ref={cardRef} className={`profile-card ${entered ? 'entry-animation' : ''}`}>
+        <div
+          ref={cardRef}
+          className={`profile-card ${entered ? 'entry-animation' : ''}`}
+          onMouseEnter={handleCardMouseEnter}
+          onMouseLeave={handleCardMouseLeave}
+        >
 
           {/* Banner with 2048px Resolution */}
           <div className="banner-area">
@@ -911,8 +940,8 @@ export default function Home() {
             <a title="Twitch" href="https://www.twitch.tv/tiboryeah" target="_blank" rel="noopener noreferrer" className="social-link"><Twitch /></a>
             <a title="Github" href="https://github.com/Tiboryeah" target="_blank" rel="noopener noreferrer" className="social-link"><Github /></a>
             <a title="Spotify" href="https://open.spotify.com/user/xq8d18vl2powesh433wwh17hu?si=71884595247c4314" target="_blank" rel="noopener noreferrer" className="social-link"><Music /></a>
-            <a title="CV" aria-label="Ver mi CV" href="https://tiboryeah.github.io/CV_Tibo-/" target="_blank" rel="noopener noreferrer" className="social-link"><FileText /></a>
-            <a title="NSFW Site" href="https://tiboryeah.github.io/kokoro-3-souls/" target="_blank" rel="noopener noreferrer" className="social-link nsfw-tag"><Globe /></a>
+            <a title="Mi CV" aria-label="Abrir mi CV" href="https://tiboryeah.github.io/CV_Tibo-/" target="_blank" rel="noopener noreferrer" className="social-link cv-link"><FileText size={24} strokeWidth={2} aria-hidden="true" /></a>
+            <a title="Kokoro: 3 Souls" aria-label="Abrir Kokoro: 3 Souls" href="https://tiboryeah.github.io/kokoro-3-souls/" target="_blank" rel="noopener noreferrer" className="social-link nsfw-tag"><Globe size={24} strokeWidth={2} aria-hidden="true" /></a>
           </div>
           <p className="creator-watermark">Created by tiboryeah</p>
         </div>

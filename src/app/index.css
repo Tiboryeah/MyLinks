@@ -1093,6 +1093,8 @@ body {
     justify-content: center;
     gap: 12px;
     padding: 0 30px 24px;
+    position: relative;
+    z-index: 110;
 }
 
 .creator-watermark {
@@ -1110,6 +1112,7 @@ body {
 .social-link {
     width: 50px;
     height: 50px;
+    flex: 0 0 50px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--glass-border);
     border-radius: 15px;
@@ -1119,6 +1122,16 @@ body {
     color: white;
     text-decoration: none;
     transition: all 0.3s ease;
+    position: relative;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.social-link svg {
+    display: block;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
 }
 
 .social-link:hover {
@@ -1129,6 +1142,16 @@ body {
 
 .nsfw-tag {
     border-color: #ff4d4d;
+}
+
+.cv-link {
+    border-color: rgba(251, 191, 36, 0.55);
+}
+
+.cv-link:hover {
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    border-color: rgba(255, 255, 255, 0.7);
+    box-shadow: 0 10px 20px rgba(245, 158, 11, 0.35);
 }
 
 .nsfw-tag:hover {
@@ -1165,6 +1188,7 @@ body {
     position: fixed;
     translate: -50% -50%;
     pointer-events: none;
+    cursor: default;
     opacity: 0;
     visibility: hidden;
     transition: opacity 1.5s ease-out, visibility 1.5s;
@@ -1470,7 +1494,7 @@ body {
 }
 
 .patapon-character {
-    pointer-events: auto;
+    pointer-events: none;
     translate: -50% -50%;
     opacity: 0;
     visibility: hidden;
@@ -1480,7 +1504,7 @@ body {
     animation-play-state: paused;
     transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 1.2s ease, visibility 1.2s;
     will-change: transform, opacity;
-    cursor: help;
+    cursor: default;
     z-index: 1;
 }
 
