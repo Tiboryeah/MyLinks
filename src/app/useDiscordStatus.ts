@@ -125,8 +125,11 @@ export function useDiscordData(userId: string) {
     useEffect(() => {
         if (!userId) return;
         let cancelled = false;
+        let profileRequestInFlight = false;
 
         const fetchProfile = async () => {
+            if (profileRequestInFlight) return;
+            profileRequestInFlight = true;
             try {
                 const res = await fetch(`/api/discord?id=${userId}&refresh=${Date.now()}`, { cache: 'no-store' });
                 if (res.ok) {
@@ -135,6 +138,8 @@ export function useDiscordData(userId: string) {
                 }
             } catch (err) {
                 console.error("Error fetching Discord Profile:", err);
+            } finally {
+                profileRequestInFlight = false;
             }
         };
 
@@ -143,7 +148,7 @@ export function useDiscordData(userId: string) {
         // Poll every 30s — picks up badge changes, new effects, avatar/banner updates
         const profileInterval = setInterval(() => {
             if (document.visibilityState === 'visible') fetchProfile();
-        }, 5000);
+        }, 1000);
         const refreshWhenVisible = () => {
             if (document.visibilityState === 'visible') fetchProfile();
         };

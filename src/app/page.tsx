@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, type CSSProperties } from 'react';
+import { useState, useEffect, useRef, useMemo, type CSSProperties, type ReactNode } from 'react';
 import { useDiscordData } from './useDiscordStatus';
 import {
   Instagram,
@@ -86,6 +86,38 @@ const DISPLAY_NAME_FONTS: Record<number, string> = {
   15: "'Permanent Marker', cursive",
   16: "'Caveat', cursive",
 };
+
+const DISCORD_INLINE_PATTERN = /(<a?:[A-Za-z0-9_]+:\d+>|https?:\/\/[^\s]+|\*\*[^*\n]+\*\*|__[^_\n]+__|~~[^~\n]+~~|\*[^*\n]+\*|_[^_\n]+_|`[^`\n]+`)/g;
+
+function renderDiscordInline(text: string, keyPrefix = 'bio'): ReactNode[] {
+  return text.split(DISCORD_INLINE_PATTERN).filter(Boolean).map((part, index) => {
+    const key = `${keyPrefix}-${index}`;
+    const emoji = part.match(/^<(a?):([A-Za-z0-9_]+):(\d+)>$/);
+    if (emoji) {
+      const [, animated, name, id] = emoji;
+      return <img key={key} className="discord-bio-emoji" src={`https://cdn.discordapp.com/emojis/${id}.${animated ? 'gif' : 'webp'}?size=48&quality=lossless`} alt={`:${name}:`} title={`:${name}:`} />;
+    }
+    if (/^https?:\/\//.test(part)) {
+      return <a key={key} href={part} target="_blank" rel="noopener noreferrer">{part}</a>;
+    }
+    if (part.startsWith('**') && part.endsWith('**')) return <strong key={key}>{renderDiscordInline(part.slice(2, -2), key)}</strong>;
+    if (part.startsWith('__') && part.endsWith('__')) return <u key={key}>{renderDiscordInline(part.slice(2, -2), key)}</u>;
+    if (part.startsWith('~~') && part.endsWith('~~')) return <s key={key}>{renderDiscordInline(part.slice(2, -2), key)}</s>;
+    if (part.startsWith('*') && part.endsWith('*')) return <em key={key}>{renderDiscordInline(part.slice(1, -1), key)}</em>;
+    if (part.startsWith('_') && part.endsWith('_')) return <em key={key}>{renderDiscordInline(part.slice(1, -1), key)}</em>;
+    if (part.startsWith('`') && part.endsWith('`')) return <code key={key}>{part.slice(1, -1)}</code>;
+    return <span key={key}>{part}</span>;
+  });
+}
+
+function DiscordBio({ bio }: { bio: string }) {
+  return <>{bio.split(/\r?\n/).map((line, index) => {
+    const quote = line.match(/^\s*&gt;\s?(.*)$/) || line.match(/^\s*>\s?(.*)$/);
+    return quote
+      ? <blockquote key={index}>{renderDiscordInline(quote[1], `quote-${index}`)}</blockquote>
+      : <div className="discord-bio-line" key={index}>{line ? renderDiscordInline(line, `line-${index}`) : <br />}</div>;
+  })}</>;
+}
 
 export default function Home() {
   const [entered, setEntered] = useState(false);
@@ -714,7 +746,7 @@ export default function Home() {
           {/* Discord Bio */}
           {profile?.bio && (
             <div className="profile-bio">
-              <p>{profile.bio}</p>
+              <DiscordBio bio={profile.bio} />
             </div>
           )}
 
