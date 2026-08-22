@@ -145,6 +145,7 @@ export default function Home() {
   const [effectPhase, setEffectPhase] = useState<'intro' | 'loop'>('intro');
   const [effectKey, setEffectKey] = useState(0);
   const effectTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const effectPlayingRef = useRef(false);
 
   // Card scale to always fit within viewport height without scroll
   const cardWrapperRef = useRef<HTMLDivElement>(null);
@@ -464,17 +465,26 @@ export default function Home() {
 
   // Play effect ONCE on entry, then stop. Replays on hover via handleCardHover.
   const playEffect = () => {
-    if (!profileEffect) return;
-    if (effectTimerRef.current) clearTimeout(effectTimerRef.current);
+    if (!profileEffect || effectPlayingRef.current) return;
+
+    effectPlayingRef.current = true;
     setEffectPhase('intro');
     setShowEffect(true);
     setEffectKey(k => k + 1);
     effectTimerRef.current = setTimeout(() => {
       setEffectPhase('loop');
       setEffectKey(k => k + 1);
-      effectTimerRef.current = setTimeout(() => setShowEffect(false), profileEffect.loopDuration);
+      effectTimerRef.current = setTimeout(() => {
+        setShowEffect(false);
+        effectPlayingRef.current = false;
+        effectTimerRef.current = null;
+      }, profileEffect.loopDuration);
     }, profileEffect.introDuration);
   };
+
+  useEffect(() => () => {
+    if (effectTimerRef.current) clearTimeout(effectTimerRef.current);
+  }, []);
 
   useEffect(() => {
     if (!profileEffect || !entered) return;

@@ -2,20 +2,36 @@ import type { Metadata } from "next";
 import "./index.css";
 
 export const metadata: Metadata = {
-  title: "tiboryeah | MyLinks",
-  description: "Social links and Discord presence of tiboryeah",
+  metadataBase: new URL("https://my-links-orpin.vercel.app"),
+  title: "tiboryeah | Links, Discord & Creative Projects",
+  description: "Discover tiboryeah's social links, live Discord presence, creative projects, music and gaming profiles.",
+  alternates: {
+    canonical: "/",
+  },
   icons: {
     icon: "/icon.webp",
     apple: "/apple-icon.webp",
   },
   openGraph: {
-    title: "tiboryeah | MyLinks",
-    description: "Social links and Discord presence of tiboryeah",
-    images: [{ url: "/og-image.webp" }],
+    type: "website",
+    url: "/",
+    siteName: "tiboryeah | MyLinks",
+    locale: "en_US",
+    title: "tiboryeah | Links, Discord & Creative Projects",
+    description: "Social links, live Discord presence, music, gaming profiles and creative projects by tiboryeah.",
+    images: [{
+      url: "/og-preview.jpg",
+      width: 1200,
+      height: 630,
+      alt: "tiboryeah — Links, Discord and creative projects",
+      type: "image/jpeg",
+    }],
   },
   twitter: {
     card: "summary_large_image",
-    images: ["/og-image.webp"],
+    title: "tiboryeah | Links, Discord & Creative Projects",
+    description: "Social links, live Discord presence, music, gaming profiles and creative projects.",
+    images: ["/og-preview.jpg"],
   },
 };
 
