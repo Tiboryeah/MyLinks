@@ -55,6 +55,7 @@ async function downloadBadgeIfNeeded(id: string, url: string): Promise<string> {
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('id') || '952780497761730560';
+    const liveOnly = searchParams.get('live') === 'true';
 
     try {
         const dcdnRes = await fetch('https://dcdn.dstn.to/profile/' + userId + '?refresh=' + Date.now(), {
@@ -67,6 +68,26 @@ export async function GET(request: Request) {
             const user = data.user || data;
 
             if (user && user.id) {
+                if (liveOnly) {
+                    const nameplateAsset = user.collectibles?.nameplate?.asset || null;
+                    const liveColors = user.display_name_styles?.colors?.map((color: number) => '#' + color.toString(16).padStart(6, '0')) || [];
+                    return NextResponse.json({
+                        id: user.id,
+                        username: user.username,
+                        global_name: user.global_name || user.username,
+                        bio: user.bio ?? data.user_profile?.bio ?? null,
+                        collectibles: user.collectibles || null,
+                        nameplateURL: nameplateAsset ? 'https://cdn.discordapp.com/assets/collectibles/' + nameplateAsset + 'static.png' : null,
+                        nameplateVideoURL: nameplateAsset ? 'https://cdn.discordapp.com/assets/collectibles/' + nameplateAsset + 'asset.webm' : null,
+                        display_name_styles: user.display_name_styles ? {
+                            colors: liveColors,
+                            font_id: user.display_name_styles.font_id,
+                            effect_id: user.display_name_styles.effect_id
+                        } : null,
+                        profile_effect: data.user_profile?.profile_effect || null
+                    }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
+                }
+
                 const discordBadges = await Promise.all(
                     (data.badges || []).map(async (b: any) => {
                         const cdnURL = b.simple_icon_url

@@ -523,41 +523,41 @@ body {
 .user-info-row {
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-top: 4px;
+    gap: 15px;
+    margin-top: 6px;
     flex-wrap: wrap;
 }
 
 .username-text,
 .nickname-text {
-    font-size: 1.06rem;
+    font-size: 1.59rem;
     color: rgba(255, 255, 255, 0.8);
     font-weight: 400;
 }
 
 .separator {
     color: rgba(255, 255, 255, 0.3);
-    font-size: 0.8rem;
+    font-size: 1.2rem;
 }
 
 .guild-badge {
     background: rgba(255, 255, 255, 0.07);
     border: 1px solid var(--glass-border);
-    padding: 2px 10px;
-    border-radius: 8px;
+    padding: 3px 15px;
+    border-radius: 11px;
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.8rem;
+    gap: 9px;
+    font-size: 1.2rem;
     font-weight: 700;
     color: rgba(255, 255, 255, 1);
     letter-spacing: 0.5px;
-    height: 24px;
+    height: 36px;
 }
 
 .guild-icon {
-    width: 16px;
-    height: 16px;
+    width: 24px;
+    height: 24px;
     image-rendering: pixelated;
 }
 
@@ -719,9 +719,14 @@ body {
 .badges-container-row {
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-top: 6px;
+    gap: 9px;
+    margin-top: 9px;
     flex-wrap: wrap;
+}
+
+.badges-container-row .badge-item {
+    width: 30px;
+    height: 30px;
 }
 
 .badge-item {
@@ -802,7 +807,7 @@ body {
 }
 
 .spotify-time {
-    font-size: 0.8rem;
+    font-size: 1.6rem;
     color: rgba(255, 255, 255, 0.5);
     font-family: 'Consolas', monospace;
 }

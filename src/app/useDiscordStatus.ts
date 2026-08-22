@@ -126,6 +126,7 @@ export function useDiscordData(userId: string) {
         if (!userId) return;
         let cancelled = false;
         let profileRequestInFlight = false;
+        let liveRequestInFlight = false;
 
         const fetchProfile = async () => {
             if (profileRequestInFlight) return;
@@ -143,22 +144,49 @@ export function useDiscordData(userId: string) {
             }
         };
 
-        profileRefreshRef.current = fetchProfile;
+        const fetchLiveProfile = async () => {
+            if (liveRequestInFlight) return;
+            liveRequestInFlight = true;
+            try {
+                const res = await fetch(`/api/discord?id=${userId}&live=true&refresh=${Date.now()}`, { cache: 'no-store' });
+                if (res.ok) {
+                    const data: Partial<DiscordProfileData> = await res.json();
+                    if (!cancelled) setProfile(current => current ? { ...current, ...data } : current);
+                }
+            } catch (err) {
+                console.error("Error fetching live Discord profile fields:", err);
+            } finally {
+                liveRequestInFlight = false;
+            }
+        };
+
+        profileRefreshRef.current = fetchLiveProfile;
         fetchProfile();
         // Poll every 30s — picks up badge changes, new effects, avatar/banner updates
-        const profileInterval = setInterval(() => {
-            if (document.visibilityState === 'visible') fetchProfile();
+        const liveProfileInterval = setInterval(() => {
+            if (document.visibilityState === 'visible') fetchLiveProfile();
         }, 1000);
-        const refreshWhenVisible = () => {
+        const fullProfileInterval = setInterval(() => {
             if (document.visibilityState === 'visible') fetchProfile();
+        }, 30000);
+        const refreshWhenVisible = () => {
+            if (document.visibilityState === 'visible') {
+                fetchLiveProfile();
+                fetchProfile();
+            }
         };
-        window.addEventListener('focus', fetchProfile);
+        const refreshOnFocus = () => {
+            fetchLiveProfile();
+            fetchProfile();
+        };
+        window.addEventListener('focus', refreshOnFocus);
         document.addEventListener('visibilitychange', refreshWhenVisible);
         return () => {
             cancelled = true;
             profileRefreshRef.current = () => {};
-            clearInterval(profileInterval);
-            window.removeEventListener('focus', fetchProfile);
+            clearInterval(liveProfileInterval);
+            clearInterval(fullProfileInterval);
+            window.removeEventListener('focus', refreshOnFocus);
             document.removeEventListener('visibilitychange', refreshWhenVisible);
         };
     }, [userId]);
