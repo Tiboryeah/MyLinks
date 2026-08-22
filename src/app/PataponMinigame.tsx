@@ -26,7 +26,7 @@ const DrumIcon = ({ type, active, size = 60 }: { type: string, active: boolean, 
             style={{
                 width: size,
                 height: size,
-                backgroundImage: `url('/descarga.png')`,
+                backgroundImage: `url('/descarga.webp')`,
                 backgroundSize: '400% 200%',
                 backgroundPosition: `${DRUM_MAP[type].x} 100%`,
                 filter: active ? `drop-shadow(0 0 10px ${DRUM_MAP[type].color})` : 'none'
@@ -297,7 +297,7 @@ export default function PataponMinigame({ onClose }: PataponMinigameProps) {
 
                 {gameOver === "WIN" && (
                     <div className="game-over-screen win">
-                        <img src="/victoria.png" alt="Victory!" className="victory-img" />
+                        <img src="/victoria.webp" alt="Victory!" className="victory-img" />
                         <p>Mission Complete!</p>
                         <div className="game-over-actions">
                             <button className="restart-btn" onClick={handleRestart}><RotateCcw className="inline-icon" /> Restart</button>
@@ -318,7 +318,7 @@ export default function PataponMinigame({ onClose }: PataponMinigameProps) {
 
                 <div className="game-header">
                     <div className="header-title-bar">
-                        <img src="/logo.png" alt="logo" className="minigame-logo" />
+                        <img src="/logo.webp" alt="logo" className="minigame-logo" />
                         <span className="minigame-title-text">tiboryeah | Patapon</span>
                     </div>
                     <div className="header-stats">
@@ -344,7 +344,7 @@ export default function PataponMinigame({ onClose }: PataponMinigameProps) {
                     </div>
 
                     <div className="character-side hatampon-side" style={{ left: `${heroX - 8}%`, position: 'absolute', bottom: '20px', zIndex: 1 }}>
-                        <img src="/characters_extra/patapon_18.png" alt="Hatampon" style={{ width: '45px', height: 'auto' }} />
+                        <img src="/characters_extra/patapon_18.webp" alt="Hatampon" style={{ width: '45px', height: 'auto' }} />
                     </div>
 
                     <div className="character-side patapon-side" style={{ left: `${heroX}%`, position: 'absolute', bottom: '20px', zIndex: 2 }}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 export interface DiscordStatus {
     status: 'online' | 'idle' | 'dnd' | 'offline';
@@ -30,6 +30,23 @@ export interface DiscordStatus {
         id: string;
         discriminator: string;
         public_flags?: number;
+        avatar_decoration_data?: {
+            asset: string;
+            sku_id?: string;
+        };
+        collectibles?: {
+            nameplate?: {
+                asset: string;
+                sku_id?: string;
+                palette?: string;
+                label?: string;
+            };
+        } | null;
+        display_name_styles?: {
+            colors: number[];
+            font_id?: number;
+            effect_id?: number;
+        } | null;
         primary_guild?: {
             id: string;
             name: string;
@@ -45,63 +62,210 @@ export interface DiscordStatus {
         artist: string;
         album_art_url: string;
         album: string;
+        timestamps?: {
+            start: number;
+            end: number;
+        };
     } | null;
     listening_to_spotify: boolean;
 }
 
-export interface DiscordProfile {
-    user: {
-        id: string;
-        username: string;
-        global_name: string;
-        avatar: string;
-        banner: string | null;
-        banner_color: string | null;
-        accent_color: number | null;
-        bio: string | null;
-        public_flags: number;
-    };
+export interface DiscordProfileData {
+    id: string;
+    username: string;
+    global_name: string;
+    avatar: string;
+    avatarURL: string;
+    avatarDecorationURL: string | null;
+    nameplateURL?: string | null;
+    nameplateVideoURL?: string | null;
+    banner: string | null;
+    bannerURL: string | null;
+    banner_color: string;
+    accent_color: number | null;
     badges: {
         id: string;
         description: string;
         icon: string;
     }[];
+    clan: {
+        tag: string;
+        badge: string;
+        badgeURL: string | null;
+        identity_guild_id: string;
+    } | null;
+    bio?: string | null;
+    connected_accounts?: {
+        type: string;
+        name: string;
+        verified?: boolean;
+    }[];
+    display_name_styles?: {
+        colors: string[];
+        font_id?: number;
+        effect_id?: number;
+    } | null;
+    theme_colors?: string[];
+    collectibles?: any;
+    profile_effect?: any;
+    createdAt?: string;
+    memberSince?: string;
+    flags?: string[];
 }
 
 export function useDiscordData(userId: string) {
     const [status, setStatus] = useState<DiscordStatus | null>(null);
-    const [profile, setProfile] = useState<DiscordProfile | null>(null);
+    const [profile, setProfile] = useState<DiscordProfileData | null>(null);
+    const [lanyardMonitored, setLanyardMonitored] = useState<boolean>(true);
+    const wsRef = useRef<WebSocket | null>(null);
+    const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const profileRefreshRef = useRef<() => void>(() => {});
 
+    // 1. Fetch Profile (JAPI / Discord enriched profile)
     useEffect(() => {
         if (!userId) return;
-
-        const fetchStatus = async () => {
-            try {
-                const res = await fetch(`https://api.lanyard.rest/v1/users/${userId}`);
-                const json = await res.json();
-                if (json.success) setStatus(json.data);
-            } catch (err) {
-                console.error("Error fetching Lanyard:", err);
-            }
-        };
+        let cancelled = false;
 
         const fetchProfile = async () => {
             try {
-                const res = await fetch(`https://dcdn.dstn.to/profile/${userId}`);
-                const json = await res.json();
-                // Some wrappers return { user, badges, ... } directly
-                if (json.user) setProfile(json);
+                const res = await fetch(`/api/discord?id=${userId}&refresh=${Date.now()}`, { cache: 'no-store' });
+                if (res.ok) {
+                    const data: DiscordProfileData = await res.json();
+                    if (!cancelled) setProfile(data);
+                }
             } catch (err) {
-                console.error("Error fetching DCDN profile:", err);
+                console.error("Error fetching Discord Profile:", err);
             }
         };
 
-        fetchStatus();
+        profileRefreshRef.current = fetchProfile;
         fetchProfile();
-
-        const statusInterval = setInterval(fetchStatus, 30000);
-        return () => clearInterval(statusInterval);
+        // Poll every 30s — picks up badge changes, new effects, avatar/banner updates
+        const profileInterval = setInterval(() => {
+            if (document.visibilityState === 'visible') fetchProfile();
+        }, 5000);
+        const refreshWhenVisible = () => {
+            if (document.visibilityState === 'visible') fetchProfile();
+        };
+        window.addEventListener('focus', fetchProfile);
+        document.addEventListener('visibilitychange', refreshWhenVisible);
+        return () => {
+            cancelled = true;
+            profileRefreshRef.current = () => {};
+            clearInterval(profileInterval);
+            window.removeEventListener('focus', fetchProfile);
+            document.removeEventListener('visibilitychange', refreshWhenVisible);
+        };
     }, [userId]);
 
-    return { status, profile };
+    // 2. Real-time Lanyard via WebSocket with REST Polling Fallback
+    useEffect(() => {
+        if (!userId) return;
+
+        let isUnmounted = false;
+        let reconnectTimeout: NodeJS.Timeout | null = null;
+
+        const setupWebSocket = () => {
+            try {
+                const ws = new WebSocket("wss://api.lanyard.rest/socket");
+                wsRef.current = ws;
+
+                ws.onopen = () => {
+                    // Connected to Lanyard socket
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        const message = JSON.parse(event.data);
+                        const { op, d, t } = message;
+
+                        if (op === 1) {
+                            // Hello packet: Send initialize and start heartbeat
+                            const heartbeatInterval = d.heartbeat_interval;
+                            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+                            heartbeatIntervalRef.current = setInterval(() => {
+                                if (ws.readyState === WebSocket.OPEN) {
+                                    ws.send(JSON.stringify({ op: 3 }));
+                                }
+                            }, heartbeatInterval);
+
+                            // Subscribe to user
+                            ws.send(JSON.stringify({
+                                op: 2,
+                                d: {
+                                    subscribe_to_id: userId
+                                }
+                            }));
+                        } else if (t === "INIT_STATE" || t === "PRESENCE_UPDATE") {
+                            if (!isUnmounted && d) {
+                                setStatus(d);
+                                setLanyardMonitored(true);
+                                // Presence packets carry the freshest user fields.
+                                // Also refresh non-presence fields such as bio/banner/badges.
+                                profileRefreshRef.current();
+                            }
+                        }
+                    } catch (e) {
+                        console.error("Error parsing Lanyard WS message:", e);
+                    }
+                };
+
+                ws.onerror = (err) => {
+                    console.warn("Lanyard WS warning, falling back to REST:", err);
+                };
+
+                ws.onclose = () => {
+                    if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+                    if (!isUnmounted) {
+                        reconnectTimeout = setTimeout(setupWebSocket, 10000);
+                    }
+                };
+            } catch (e) {
+                console.error("Lanyard WS init error:", e);
+            }
+        };
+
+        // REST fallback check
+        const fetchRestStatus = async () => {
+            try {
+                const res = await fetch(`https://api.lanyard.rest/v1/users/${userId}`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    setStatus(json.data);
+                    setLanyardMonitored(true);
+                } else if (json.error?.code === "user_not_monitored") {
+                    setLanyardMonitored(false);
+                }
+            } catch (err) {
+                // Ignore transient errors
+            }
+        };
+
+        fetchRestStatus();
+        setupWebSocket();
+        // The socket is primary; polling also acts as a watchdog if a connection
+        // remains technically open but stops delivering presence events.
+        const restInterval = setInterval(fetchRestStatus, 15000);
+        const refreshStatusWhenVisible = () => {
+            if (document.visibilityState === 'visible') fetchRestStatus();
+        };
+        window.addEventListener('online', fetchRestStatus);
+        window.addEventListener('focus', fetchRestStatus);
+        document.addEventListener('visibilitychange', refreshStatusWhenVisible);
+
+        return () => {
+            isUnmounted = true;
+            clearInterval(restInterval);
+            if (reconnectTimeout) clearTimeout(reconnectTimeout);
+            if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+            window.removeEventListener('online', fetchRestStatus);
+            window.removeEventListener('focus', fetchRestStatus);
+            document.removeEventListener('visibilitychange', refreshStatusWhenVisible);
+            if (wsRef.current) {
+                wsRef.current.close();
+            }
+        };
+    }, [userId]);
+
+    return { status, profile, lanyardMonitored };
 }
