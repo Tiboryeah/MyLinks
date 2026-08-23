@@ -1,25 +1,9 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
 
-const VIEWS_FILE = path.join(process.cwd(), '.views.json');
-const BASELINE_VIEWS = 108;
-const COUNTER_URL = `https://counterapi.com/api/tiboryeah-prod/view/hits?startNumber=${BASELINE_VIEWS}`;
-
-function getStoredViews(): number {
-    try {
-        const data = JSON.parse(fs.readFileSync(VIEWS_FILE, 'utf-8'));
-        return Number.isSafeInteger(data.count) && data.count >= 0 ? data.count : BASELINE_VIEWS;
-    } catch {
-        return BASELINE_VIEWS;
-    }
-}
-
-function saveStoredViews(count: number) {
-    const tempFile = `${VIEWS_FILE}.${process.pid}.tmp`;
-    fs.writeFileSync(tempFile, JSON.stringify({ count, updatedAt: new Date().toISOString() }), 'utf-8');
-    fs.renameSync(tempFile, VIEWS_FILE);
-}
+// CounterAPI is the persistent source of truth. Vercel Functions cannot safely
+// persist counters in project files because their filesystem is ephemeral.
+const BASELINE_VIEWS = 154;
+const COUNTER_URL = `https://counterapi.com/api/tiboryeah-prod/view/hits-v2?startNumber=${BASELINE_VIEWS}`;
 
 const json = (count: number) => NextResponse.json(
     { count },
@@ -42,18 +26,12 @@ async function getRemoteViews(readOnly: boolean): Promise<number | null> {
 
 // Reading the counter never changes it (important for crawlers and prefetching).
 export async function GET() {
-    const localCount = getStoredViews();
     const remoteCount = await getRemoteViews(true);
-    const currentCount = remoteCount === null ? localCount : Math.max(localCount, remoteCount);
-    if (currentCount !== localCount) saveStoredViews(currentCount);
-    return json(currentCount);
+    return json(remoteCount ?? BASELINE_VIEWS);
 }
 
 // A deliberate entry is the only operation that adds one visit.
 export async function POST() {
-    const localCount = getStoredViews();
     const remoteCount = await getRemoteViews(false);
-    const nextCount = remoteCount === null ? localCount + 1 : Math.max(localCount + 1, remoteCount);
-    saveStoredViews(nextCount);
-    return json(nextCount);
+    return json(remoteCount ?? BASELINE_VIEWS);
 }

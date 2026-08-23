@@ -120,6 +120,7 @@ export function useDiscordData(userId: string) {
     const wsRef = useRef<WebSocket | null>(null);
     const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const profileRefreshRef = useRef<() => void>(() => {});
+    const pageActiveRef = useRef(true);
 
     // 1. Fetch Profile (JAPI / Discord enriched profile)
     useEffect(() => {
@@ -127,6 +128,14 @@ export function useDiscordData(userId: string) {
         let cancelled = false;
         let profileRequestInFlight = false;
         let liveRequestInFlight = false;
+        const IDLE_AFTER_MS = 20000;
+        let lastActivityAt = Date.now();
+        let activityWasPaused = false;
+
+        const isPageActive = () => (
+            document.visibilityState === 'visible' &&
+            Date.now() - lastActivityAt <= IDLE_AFTER_MS
+        );
 
         const fetchProfile = async () => {
             if (profileRequestInFlight) return;
@@ -160,34 +169,53 @@ export function useDiscordData(userId: string) {
             }
         };
 
-        profileRefreshRef.current = fetchLiveProfile;
+        profileRefreshRef.current = () => {
+            if (isPageActive()) fetchLiveProfile();
+        };
         fetchProfile();
         // Poll every 30s — picks up badge changes, new effects, avatar/banner updates
         const liveProfileInterval = setInterval(() => {
-            if (document.visibilityState === 'visible') fetchLiveProfile();
+            if (isPageActive()) {
+                pageActiveRef.current = true;
+                fetchLiveProfile();
+            } else {
+                pageActiveRef.current = false;
+                activityWasPaused = true;
+            }
         }, 1000);
         const fullProfileInterval = setInterval(() => {
-            if (document.visibilityState === 'visible') fetchProfile();
+            if (isPageActive()) fetchProfile();
         }, 30000);
-        const refreshWhenVisible = () => {
-            if (document.visibilityState === 'visible') {
+        const markActivity = () => {
+            lastActivityAt = Date.now();
+            pageActiveRef.current = document.visibilityState === 'visible';
+            if (activityWasPaused && document.visibilityState === 'visible') {
+                activityWasPaused = false;
                 fetchLiveProfile();
                 fetchProfile();
             }
         };
-        const refreshOnFocus = () => {
-            fetchLiveProfile();
-            fetchProfile();
+
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+                pageActiveRef.current = false;
+                activityWasPaused = true;
+            }
+            else markActivity();
         };
-        window.addEventListener('focus', refreshOnFocus);
-        document.addEventListener('visibilitychange', refreshWhenVisible);
+
+        const activityEvents: (keyof WindowEventMap)[] = ['pointermove', 'pointerdown', 'keydown', 'touchstart', 'scroll'];
+        activityEvents.forEach(eventName => window.addEventListener(eventName, markActivity, { passive: true }));
+        window.addEventListener('focus', markActivity);
+        document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => {
             cancelled = true;
             profileRefreshRef.current = () => {};
             clearInterval(liveProfileInterval);
             clearInterval(fullProfileInterval);
-            window.removeEventListener('focus', refreshOnFocus);
-            document.removeEventListener('visibilitychange', refreshWhenVisible);
+            activityEvents.forEach(eventName => window.removeEventListener(eventName, markActivity));
+            window.removeEventListener('focus', markActivity);
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
         };
     }, [userId]);
 
@@ -278,7 +306,9 @@ export function useDiscordData(userId: string) {
         setupWebSocket();
         // The socket is primary; polling also acts as a watchdog if a connection
         // remains technically open but stops delivering presence events.
-        const restInterval = setInterval(fetchRestStatus, 15000);
+        const restInterval = setInterval(() => {
+            if (pageActiveRef.current && document.visibilityState === 'visible') fetchRestStatus();
+        }, 15000);
         const refreshStatusWhenVisible = () => {
             if (document.visibilityState === 'visible') fetchRestStatus();
         };
