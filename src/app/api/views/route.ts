@@ -41,7 +41,12 @@ async function readPersistentViews(): Promise<number | null> {
     try {
         await redis.set(REDIS_KEY, BASELINE_VIEWS, { nx: true });
         const count = await redis.get<number>(REDIS_KEY);
-        return typeof count === 'number' ? count : Number(count);
+        if (count === null || count === undefined) return BASELINE_VIEWS;
+
+        const numericCount = typeof count === 'number' ? count : Number(count);
+        return Number.isSafeInteger(numericCount) && numericCount >= BASELINE_VIEWS
+            ? numericCount
+            : BASELINE_VIEWS;
     } catch (error) {
         console.error('Unable to read the persistent view counter:', error);
         return null;
