@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
+import { Redis } from '@upstash/redis';
 
-// CounterAPI is the persistent source of truth. Vercel Functions cannot safely
-// persist counters in project files because their filesystem is ephemeral.
 const BASELINE_VIEWS = 154;
+const REDIS_KEY = 'mylinks:views';
 const COUNTER_URL = `https://counterapi.com/api/tiboryeah-prod/view/hits-v2?startNumber=${BASELINE_VIEWS}`;
 
 const json = (count: number) => NextResponse.json(
@@ -24,14 +24,59 @@ async function getRemoteViews(readOnly: boolean): Promise<number | null> {
     }
 }
 
+function getRedis(): Redis | null {
+    const url = process.env.UPSTASH_REDIS_REST_URL
+        ?? process.env.UPSTASH_REDIS_REST_KV_REST_API_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN
+        ?? process.env.UPSTASH_REDIS_REST_KV_REST_API_TOKEN;
+
+    if (!url || !token) return null;
+    return new Redis({ url, token });
+}
+
+async function readPersistentViews(): Promise<number | null> {
+    const redis = getRedis();
+    if (!redis) return null;
+
+    try {
+        await redis.set(REDIS_KEY, BASELINE_VIEWS, { nx: true });
+        const count = await redis.get<number>(REDIS_KEY);
+        return typeof count === 'number' ? count : Number(count);
+    } catch (error) {
+        console.error('Unable to read the persistent view counter:', error);
+        return null;
+    }
+}
+
+async function incrementPersistentViews(): Promise<number | null> {
+    const redis = getRedis();
+    if (!redis) return null;
+
+    try {
+        // SET NX initializes the legacy total exactly once; INCR is atomic, so
+        // simultaneous visitors can never overwrite one another.
+        await redis.set(REDIS_KEY, BASELINE_VIEWS, { nx: true });
+        return await redis.incr(REDIS_KEY);
+    } catch (error) {
+        console.error('Unable to increment the persistent view counter:', error);
+        return null;
+    }
+}
+
 // Reading the counter never changes it (important for crawlers and prefetching).
 export async function GET() {
-    const remoteCount = await getRemoteViews(true);
-    return json(remoteCount ?? BASELINE_VIEWS);
+    const persistentCount = await readPersistentViews();
+    if (persistentCount !== null) return json(persistentCount);
+
+    const fallbackCount = await getRemoteViews(true);
+    return json(fallbackCount ?? BASELINE_VIEWS);
 }
 
 // A deliberate entry is the only operation that adds one visit.
 export async function POST() {
-    const remoteCount = await getRemoteViews(false);
-    return json(remoteCount ?? BASELINE_VIEWS);
+    const persistentCount = await incrementPersistentViews();
+    if (persistentCount !== null) return json(persistentCount);
+
+    const fallbackCount = await getRemoteViews(false);
+    return json(fallbackCount ?? BASELINE_VIEWS);
 }
