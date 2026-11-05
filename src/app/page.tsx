@@ -992,7 +992,7 @@ export default function Home() {
             <div className="server-card">
               <div className="server-info">
                 <img
-                  src="https://cdn.discordapp.com/icons/1269057940241907714/a_b4f51ac71594459aaf05d5ca08149e83.gif?size=64"
+                  src="https://cdn.discordapp.com/icons/1541259310535938071/aab6c5964ec1dcf9b44e5cdd81396191.png?size=64"
                   className="server-icon"
                   alt="Community Icon"
                 />
@@ -1001,7 +1001,7 @@ export default function Home() {
                   <p className="server-name">⚝ 𝒯𝒽𝑒 𝑅𝒾𝓈𝒾𝓃𝑔 𝐿𝑒𝑔𝑒𝓃𝒹 ... ⚚</p>
                 </div>
               </div>
-              <a href="https://discord.gg/RXAWpGVyUG" target="_blank" rel="noopener noreferrer" className="join-btn">Join</a>
+              <a href="https://discord.gg/X8hbR2ESkN" target="_blank" rel="noopener noreferrer" className="join-btn">Join</a>
             </div>
 
             <div className="server-card nsfw-server">
