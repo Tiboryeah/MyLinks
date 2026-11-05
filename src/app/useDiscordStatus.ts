@@ -70,6 +70,20 @@ export interface DiscordStatus {
     listening_to_spotify: boolean;
 }
 
+export interface DiscordProfileFrame {
+    sku_id: string;
+    inner_width: number;
+    overflow_top: number;
+    overflow_bottom: number;
+    overflow_horizontal: number;
+    layers: {
+        id: string;
+        order: 'front' | 'back';
+        anchor: 'top' | 'bottom';
+        url: string;
+    }[];
+}
+
 export interface DiscordProfileData {
     id: string;
     username: string;
@@ -108,6 +122,7 @@ export interface DiscordProfileData {
     theme_colors?: string[];
     collectibles?: any;
     profile_effect?: any;
+    profile_frame?: DiscordProfileFrame | null;
     createdAt?: string;
     memberSince?: string;
     flags?: string[];

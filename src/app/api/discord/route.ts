@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
+import type { DiscordProfileFrame } from '../../useDiscordStatus';
 
 // Cache badge icons locally for crisp quality and no CORS
 // Keyed by ICON HASH (not badge id) so upgrades (e.g. 6mo→1yr Nitro) auto-update
@@ -52,6 +53,61 @@ async function downloadBadgeIfNeeded(id: string, url: string): Promise<string> {
     return url;
 }
 
+const PROFILE_FRAME_COLLECTIBLE_TYPE = 3;
+const FRAME_FAILURE_RETRY_MS = 60000;
+
+// A SKU's artwork doesn't change, and the live route polls every second, so
+// resolved frames are kept for the life of the instance. Failures retry later.
+const frameCache = new Map<string, { frame: DiscordProfileFrame | null; retryAt: number }>();
+
+async function resolveProfileFrame(collectibles?: { type?: number; sku_id?: string }[]): Promise<DiscordProfileFrame | null> {
+    if (!Array.isArray(collectibles)) return null;
+    const skuId = collectibles.find(c => c?.type === PROFILE_FRAME_COLLECTIBLE_TYPE)?.sku_id;
+    if (!skuId) return null;
+
+    const cached = frameCache.get(skuId);
+    if (cached && Date.now() < cached.retryAt) return cached.frame;
+
+    let frame: DiscordProfileFrame | null = null;
+    try {
+        const res = await fetch('https://discord.com/api/v10/store/published-listings/skus/' + skuId, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            cache: 'no-store'
+        });
+        if (res.ok) {
+            const listing = await res.json();
+            const item = listing?.sku?.tenant_metadata?.collectibles?.item;
+            // Only top/bottom anchors are positioned by the client.
+            const rawLayers: { id?: string; order?: string; anchor?: string }[] = item?.layers || [];
+            const layers = rawLayers.flatMap((l): DiscordProfileFrame['layers'] => (
+                l?.id && (l.anchor === 'top' || l.anchor === 'bottom')
+                    ? [{
+                        id: l.id,
+                        order: l.order === 'front' ? 'front' : 'back',
+                        anchor: l.anchor,
+                        url: 'https://cdn.discordapp.com/media/v1/collectibles-shop/' + skuId + '/' + l.id + '/static'
+                    }]
+                    : []
+            ));
+            if (item?.inner_width && layers.length > 0) {
+                frame = {
+                    sku_id: skuId,
+                    inner_width: item.inner_width,
+                    overflow_top: item.overflow_top || 0,
+                    overflow_bottom: item.overflow_bottom || 0,
+                    overflow_horizontal: item.overflow_horizontal || 0,
+                    layers
+                };
+            }
+        }
+    } catch (e) {
+        console.error('Failed to resolve profile frame ' + skuId + ':', e);
+    }
+
+    frameCache.set(skuId, { frame, retryAt: frame ? Infinity : Date.now() + FRAME_FAILURE_RETRY_MS });
+    return frame;
+}
+
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('id') || '952780497761730560';
@@ -68,6 +124,8 @@ export async function GET(request: Request) {
             const user = data.user || data;
 
             if (user && user.id) {
+                const profileFrame = await resolveProfileFrame(data.user_profile?.collectibles);
+
                 if (liveOnly) {
                     const nameplateAsset = user.collectibles?.nameplate?.asset || null;
                     const liveColors = user.display_name_styles?.colors?.map((color: number) => '#' + color.toString(16).padStart(6, '0')) || [];
@@ -84,7 +142,8 @@ export async function GET(request: Request) {
                             font_id: user.display_name_styles.font_id,
                             effect_id: user.display_name_styles.effect_id
                         } : null,
-                        profile_effect: data.user_profile?.profile_effect || null
+                        profile_effect: data.user_profile?.profile_effect || null,
+                        profile_frame: profileFrame
                     }, { headers: { 'Cache-Control': 'no-store, no-cache, must-revalidate' } });
                 }
 
@@ -177,6 +236,7 @@ export async function GET(request: Request) {
                     theme_colors: themeColors,
                     collectibles: user.collectibles || null,
                     profile_effect: data.user_profile?.profile_effect || null,
+                    profile_frame: profileFrame,
                     connected_accounts: data.connected_accounts || [],
                     memberSince: memberSince || '19 ene 2026',
                     premium_since: data.premium_since

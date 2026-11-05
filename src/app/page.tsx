@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, type CSSProperties, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useMemo, type CSSProperties, type ReactNode, type MouseEvent as ReactMouseEvent } from 'react';
 import { useDiscordData } from './useDiscordStatus';
 import {
   Instagram,
@@ -119,8 +119,15 @@ function DiscordBio({ bio }: { bio: string }) {
   })}</>;
 }
 
+// Phones and very short windows scroll at a readable size instead of shrinking to fit.
+const COMPACT_LAYOUT_QUERY = '(max-width: 768px), (max-height: 500px)';
+// Below this the card's text stops being readable, so short desktops scroll instead.
+const MIN_CARD_SCALE = 0.6;
+const CARD_DATA_TIMEOUT_MS = 5000;
+
 export default function Home() {
   const [entered, setEntered] = useState(false);
+  const [cardDataTimedOut, setCardDataTimedOut] = useState(false);
   const enteredRef = useRef(false);
   const [showDecorations, setShowDecorations] = useState(false);
   const [muted, setMuted] = useState(false);
@@ -148,10 +155,8 @@ export default function Home() {
   const effectPlayingRef = useRef(false);
   const effectReplayArmedRef = useRef(false);
 
-  // Card scale to always fit within viewport height without scroll
   const cardWrapperRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
-  const [cardScale, setCardScale] = useState(1);
 
   const [currentTrack, setCurrentTrack] = useState<{
     song: string;
@@ -194,6 +199,16 @@ export default function Home() {
 
   const discordId = "952780497761730560";
   const { status, profile, lanyardMonitored } = useDiscordData(discordId);
+
+  // Hold the entry animation until the data that sets the card's height has arrived,
+  // so it doesn't resize while appearing. The timeout covers a slow or failed API.
+  const cardVisible = entered && Boolean((profile && status) || cardDataTimedOut);
+
+  useEffect(() => {
+    if (!entered) return;
+    const timeout = setTimeout(() => setCardDataTimedOut(true), CARD_DATA_TIMEOUT_MS);
+    return () => clearTimeout(timeout);
+  }, [entered]);
 
   const bats = useMemo(() => [130, 90, 110, 70, 100, 85, 75, 85, 95, 105].map((size, index) => ({
     id: index + 1,
@@ -361,9 +376,10 @@ export default function Home() {
     fetchViews();
   }, []);
 
-  const handleEnter = () => {
+  const handleEnter = (withSound: boolean) => {
     if (enteredRef.current) return;
     enteredRef.current = true;
+    setMuted(!withSound);
     setEntered(true);
 
     setTimeout(() => {
@@ -404,6 +420,7 @@ export default function Home() {
       : null)
     : profile?.avatarDecorationURL;
   const bannerUrl = profile?.bannerURL || null;
+  const profileFrame = profile?.profile_frame || null;
   const resolvedDisplayName = status?.discord_user?.global_name || profile?.global_name || profile?.username || "tiboryeah";
   const liveDisplayNameStyle = liveDiscordUser?.display_name_styles;
   const displayNameStyle = liveDisplayNameStyle || profile?.display_name_styles;
@@ -488,12 +505,12 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!profileEffect || !entered) return;
+    if (!profileEffect || !cardVisible) return;
     // Small delay so card entry animation finishes first
     const t = setTimeout(playEffect, 600);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileEffect, entered]);
+  }, [profileEffect, cardVisible]);
 
   const handleCardMouseEnter = (event: ReactMouseEvent<HTMLDivElement>) => {
     const previousTarget = event.relatedTarget;
@@ -503,7 +520,7 @@ export default function Home() {
     // Consume this entry even if the current animation is still playing.
     // A fresh leave + enter will be required after it finishes.
     effectReplayArmedRef.current = false;
-    if (entered && profileEffect) playEffect();
+    if (cardVisible && profileEffect) playEffect();
   };
 
   const handleCardMouseLeave = (event: ReactMouseEvent<HTMLDivElement>) => {
@@ -523,35 +540,88 @@ export default function Home() {
     effectReplayArmedRef.current = true;
   };
 
-  // Auto-scale card to always fit viewport height — no scrolling needed
-  useEffect(() => {
-    if (!entered) return;
+  // Sizes the card to the viewport. Runs from mount, while the card is still hidden, and
+  // writes to the DOM directly: both layout effects and ResizeObserver callbacks run
+  // before paint, so the card is never shown at a stale size.
+  useLayoutEffect(() => {
+    const wrapper = cardWrapperRef.current;
+    const card = cardRef.current;
+    const container = wrapper?.parentElement;
+    if (!wrapper || !card || !container) return;
 
-    const computeScale = () => {
-      const card = cardRef.current;
-      if (!card) return;
+    const applyCardLayout = () => {
       const naturalW = card.offsetWidth;
+      const naturalH = card.scrollHeight;
       const effectH = profileEffect ? naturalW * (880 / 450) : 0;
-      const naturalH = Math.max(card.scrollHeight, effectH);
+      const frameUnit = profileFrame ? naturalW / profileFrame.inner_width : 0;
+      const extraTop = (profileFrame?.overflow_top ?? 0) * frameUnit;
+      const extraBottom = Math.max((profileFrame?.overflow_bottom ?? 0) * frameUnit, effectH - naturalH);
+      const extraSide = (profileFrame?.overflow_horizontal ?? 0) * frameUnit;
+      const totalH = naturalH + extraTop + extraBottom;
       const availH = window.innerHeight - 32;
-      const availW = window.innerWidth - 32;
-      const scale = Math.min(1, availH / naturalH, availW / naturalW);
-      setCardScale(Math.round(scale * 1000) / 1000);
+      const compact = window.matchMedia(COMPACT_LAYOUT_QUERY).matches;
+      // On compact layouts the frame may reach the screen edge, keeping the card full size.
+      const availW = compact ? window.innerWidth : window.innerWidth - 32;
+
+      // Sub-1% reductions only blur the text, so treat a near fit as a fit.
+      const rawFitW = Math.min(1, availW / (naturalW + 2 * extraSide));
+      const fitW = rawFitW > 0.99 ? 1 : rawFitW;
+      const fitH = availH / totalH;
+      const minScale = compact ? fitW : MIN_CARD_SCALE;
+      const scale = Math.floor(Math.min(fitW, Math.max(fitH, minScale)) * 1000) / 1000;
+
+      const scrolls = totalH * scale > availH + 1;
+      container.toggleAttribute('data-card-scrolls', scrolls);
+      if (scrolls) {
+        // Transforms don't affect layout, so margins give the scroll area its visual size.
+        wrapper.style.marginTop = `${extraTop * scale}px`;
+        wrapper.style.marginBottom = `${extraBottom * scale - (1 - scale) * naturalH}px`;
+        wrapper.style.transform = `scale(${scale})`;
+      } else {
+        // Centre the card and its uneven frame overflow together.
+        wrapper.style.marginTop = '';
+        wrapper.style.marginBottom = '';
+        wrapper.style.transform = `translateY(${((extraTop - extraBottom) * scale) / 2}px) scale(${scale})`;
+      }
     };
 
-    // Run after content renders
-    const t1 = setTimeout(computeScale, 200);
-    const t2 = setTimeout(computeScale, 800); // re-run after profile loads
-    const observer = new ResizeObserver(computeScale);
-    if (cardRef.current) observer.observe(cardRef.current);
-    window.addEventListener('resize', computeScale);
+    applyCardLayout();
+    const observer = new ResizeObserver(applyCardLayout);
+    observer.observe(card);
+    window.addEventListener('resize', applyCardLayout);
     return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
       observer.disconnect();
-      window.removeEventListener('resize', computeScale);
+      window.removeEventListener('resize', applyCardLayout);
     };
-  }, [entered, profile, profileEffect]);
+  }, [profileEffect, profileFrame]);
+
+  // Percentages keep the frame aligned at any card width: left/width and vertical
+  // margins all resolve against the wrapper's width, matching the SKU's inner_width.
+  const renderFrameLayers = (order: 'front' | 'back') => {
+    if (!profileFrame) return null;
+    const unit = 100 / profileFrame.inner_width;
+    const layers = profileFrame.layers.filter(layer => layer.order === order);
+    if (layers.length === 0) return null;
+    return (
+      <div className={`profile-frame-layers ${order}`} aria-hidden="true">
+        {layers.map(layer => (
+          <img
+            key={layer.id}
+            src={layer.url}
+            alt=""
+            className="profile-frame-layer"
+            style={{
+              left: `${-profileFrame.overflow_horizontal * unit}%`,
+              width: `${(profileFrame.inner_width + 2 * profileFrame.overflow_horizontal) * unit}%`,
+              ...(layer.anchor === 'top'
+                ? { top: 0, marginTop: `${-profileFrame.overflow_top * unit}%` }
+                : { bottom: 0, marginBottom: `${-profileFrame.overflow_bottom * unit}%` }),
+            }}
+          />
+        ))}
+      </div>
+    );
+  };
 
 
   return (
@@ -613,18 +683,30 @@ export default function Home() {
         />
       ))}
 
-      <div className={`landing-overlay ${entered ? 'exit-animation' : ''}`} onClick={handleEnter}>
-        <div className="overlay-content">
-          <p className="click-text">click to enter ...</p>
-          <div className="glow-effect"></div>
+      <div className={`landing-overlay ${entered ? 'exit-animation' : ''}`}>
+        <div className="landing-intro">
+          <div className="landing-avatar">
+            {(liveDiscordUser || profile) && <img src={avatarUrl} alt="" />}
+          </div>
+          <p className="landing-name">tiboryeah</p>
+          <p className="landing-tagline">Mis redes, música y lo que estoy jugando</p>
+          <div className="landing-actions">
+            <button type="button" className="landing-enter-btn primary" onClick={() => handleEnter(true)}>
+              <Volume2 size={18} aria-hidden="true" />
+              Entrar con sonido
+            </button>
+            <button type="button" className="landing-enter-btn" onClick={() => handleEnter(false)}>
+              <VolumeX size={18} aria-hidden="true" />
+              Entrar sin sonido
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Profile card wrapper — scales to fit viewport, effect extends outside */}
       <div
         ref={cardWrapperRef}
-        className="profile-card-wrapper"
-        style={{ transform: `scale(${cardScale})` }}
+        className={`profile-card-wrapper ${cardVisible ? 'is-visible' : ''}`}
       >
         {/* Discord Profile Effect — OUTSIDE the card so Satoru's hands show */}
         {showEffect && profileEffect && (
@@ -638,9 +720,12 @@ export default function Home() {
           </div>
         )}
 
+        {renderFrameLayers('back')}
+        {renderFrameLayers('front')}
+
         <div
           ref={cardRef}
-          className={`profile-card ${entered ? 'entry-animation' : ''}`}
+          className={`profile-card ${cardVisible ? 'entry-animation' : ''}`}
           onMouseEnter={handleCardMouseEnter}
           onMouseLeave={handleCardMouseLeave}
         >

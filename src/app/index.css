@@ -89,7 +89,7 @@ body {
     align-items: center;
     justify-content: center;
     z-index: 1000;
-    cursor: pointer;
+    padding: 24px;
     transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.8s;
     will-change: opacity;
 }
@@ -101,46 +101,87 @@ body {
     visibility: hidden;
 }
 
-.overlay-content {
-    position: relative;
+.landing-intro {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 20px;
+    width: min(400px, 100%);
+    text-align: center;
 }
 
-.glow-effect {
-    position: absolute;
-    width: 200px;
-    height: 200px;
-    background: radial-gradient(circle, rgba(192, 132, 252, 0.2) 0%, transparent 70%);
+.landing-avatar {
+    width: 112px;
+    height: 112px;
+    margin-bottom: 20px;
     border-radius: 50%;
-    animation: pulse-glow 3s infinite ease-in-out;
-    pointer-events: none;
-    z-index: -1;
+    border: 2px solid rgba(192, 132, 252, 0.55);
+    background: rgba(255, 255, 255, 0.06);
+    overflow: hidden;
 }
 
-@keyframes pulse-glow {
-
-    0%,
-    100% {
-        transform: scale(1);
-        opacity: 0.5;
-    }
-
-    50% {
-        transform: scale(1.5);
-        opacity: 0.8;
-    }
+.landing-avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
-.click-text {
-    font-size: 0.9rem;
-    letter-spacing: 0.3em;
-    color: rgba(255, 255, 255, 0.4);
-    text-transform: uppercase;
-    animation: pulse 2.5s infinite;
-    font-weight: 300;
+.landing-name {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.landing-tagline {
+    margin: 6px 0 28px;
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.72);
+}
+
+.landing-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: min(280px, 100%);
+}
+
+.landing-enter-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0 20px;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--foreground);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.landing-enter-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.landing-enter-btn:focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
+}
+
+.landing-enter-btn.primary {
+    color: #1a0b2e;
+    background: var(--primary);
+    border-color: var(--primary);
+}
+
+.landing-enter-btn.primary:hover {
+    background: #d4a8fd;
+    border-color: #d4a8fd;
 }
 
 @keyframes pulse {
@@ -202,9 +243,25 @@ body {
 .profile-card-wrapper {
     position: relative;
     display: inline-block;
-    /* transform-origin is set inline (top right) */
     flex-shrink: 0;
     transform-origin: center right;
+}
+
+/* Set from page.tsx when the card can't fit without becoming unreadable */
+.main-container[data-card-scrolls] {
+    align-items: flex-start;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+.main-container[data-card-scrolls] .profile-card-wrapper {
+    transform-origin: top right;
+}
+
+/* Keep full-screen backgrounds in place while the card scrolls */
+.main-container[data-card-scrolls]::before,
+.main-container[data-card-scrolls] .background-overlay {
+    position: fixed;
 }
 
 /* Discord Profile Effect — OUTSIDE the card so hands extend beyond edges */
@@ -244,6 +301,37 @@ body {
     to {
         opacity: 0.9;
     }
+}
+
+/* Discord Profile Frame — back layers sit behind the card (z-index 10), front layers
+   above it, and both below the profile effect. Entry mirrors .profile-card. */
+.profile-frame-layers {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.9) translateY(30px);
+    transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.profile-frame-layers.back {
+    z-index: 5;
+}
+
+.profile-frame-layers.front {
+    z-index: 20;
+}
+
+.profile-card-wrapper.is-visible .profile-frame-layers {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+}
+
+.profile-frame-layer {
+    position: absolute;
+    height: auto;
+    max-width: none;
+    pointer-events: none;
 }
 
 
@@ -1590,8 +1678,11 @@ body {
     }
 
     .profile-card-wrapper {
-        /* On mobile always full scale — screen is scrollable */
         transform-origin: center center;
+    }
+
+    .main-container[data-card-scrolls] .profile-card-wrapper {
+        transform-origin: top center;
     }
 
     .profile-card {
@@ -1671,12 +1762,14 @@ body {
 
     .links-grid {
         padding: 0 20px 30px;
-        gap: 12px;
+        gap: 8px;
+        flex-wrap: wrap;
     }
 
     .social-link {
         width: 44px;
         height: 44px;
+        flex-basis: 44px;
     }
 
     .patapon-character {
